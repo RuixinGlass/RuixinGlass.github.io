@@ -879,7 +879,7 @@ h2 {
 .oem-middle {
     flex: 1;
     background-color: #222;
-    border: 1px solid #333;
+    border: 1px solid #eee;
 }
 
 .oem-right {
