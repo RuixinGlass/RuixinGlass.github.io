@@ -1,228 +1,111 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-<meta charset="UTF-8">
-<title>施工现场质量控制/验收单</title>
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<style>
-body { font-family: 'Segoe UI', 'PingFang SC', '微软雅黑', Arial, sans-serif; background: #f5f6fa; margin: 0; }
-.container { max-width: 900px; margin: 32px auto; background: #fff; border-radius: 16px; box-shadow: 0 4px 24px #e0e3ea; padding: 32px 18px; }
-h1 { color: #2d7be5; text-align: center; font-weight: 600; letter-spacing: 2px; }
-h2 { color: #e53d2d; margin-top: 32px; font-size: 1.2em; }
-.important { color: #e53d2d; font-weight: 500; background: #fffbe6; padding: 2px 8px; border-radius: 4px; }
-.step { margin-bottom: 18px; }
-label { font-weight: 500; margin-right: 4px; }
-input[type="number"] { width: 70px; padding: 4px 8px; border: 1px solid #e0e3ea; border-radius: 6px; background: #f8f9fb; font-size: 1em; margin-right: 8px; }
-.card-list { list-style: none; padding: 0; margin: 0; }
-.card-list > li { background: #f8f9fb; border-radius: 12px; margin-bottom: 18px; box-shadow: 0 1px 4px #e0e3ea; padding: 18px 16px 12px 16px; position: relative; display: flex; flex-direction: column; gap: 8px; transition: box-shadow 0.2s; }
-.card-list > li.completed { background: #e6ffe6; color: #1a7f1a; text-decoration: line-through; box-shadow: 0 2px 8px #b7e6b7; }
-.card-actions { display: flex; align-items: center; justify-content: flex-end; gap: 10px; margin-top: 6px; }
-.card-actions button { padding: 4px 18px; border: none; border-radius: 6px; font-size: 1em; font-weight: 500; cursor: pointer; background: #2d7be5; color: #fff; transition: background 0.2s; }
-.card-actions button.undo { background: #e53d2d; }
-.card-actions button:disabled { background: #aaa; cursor: not-allowed; }
-.step-budget { display: flex; align-items: center; gap: 8px; margin-top: 4px; }
-.step-img { text-align: center; margin: 8px 0 0 0; }
-.step-img img { width: 100%; border-radius: 8px; box-shadow: 0 1px 6px #e0e3ea; background: #eee; }
-.total-summary { background: #fffbe6; padding: 14px 0; border-radius: 10px; margin-bottom: 28px; font-size: 1.1em; color: #e53d2d; text-align: center; font-weight: 600; letter-spacing: 1px; }
-@media (max-width:600px) {
-  .container { padding: 6px; }
-  .card-list > li { padding: 12px 6px 8px 6px; }
-  .step-budget label, .step-budget input { font-size: 0.95em; }
-  .step-img img { max-width: 98vw; }
-}
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>严谨的版本控制笔记系统</title>
+    
+    <!-- 现代化字体 -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    
+    <!-- 图标库 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- 动画库 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
+    
+    <!-- 自定义样式 -->
+    <link rel="stylesheet" href="style.css">
+    
+    <!-- Markdown解析器 -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.6/purify.min.js"></script>
 </head>
 <body>
-<div class="container">
-  <h1>施工现场质量控制/验收单</h1>
-  <div class="total-summary">
-    总预算：<span id="totalBudget">0</span> 元 &nbsp;|&nbsp; 总辅料费用：<span id="totalMaterial">0</span> 元
-  </div>
-  <h2>一、拆旧/水路改造工程分三部分</h2>
-  <div class="step"><span class="important">1. 拆走旧电热水器及其进出水路、卫浴</span></div>
-  <ul class="card-list" id="step1">
-    <li>
-      <div>拆掉旧电热水器机体</div>
-      <div class="step-img"><img src="旧热水器.jpg" alt="示意图"></div>
-      <div class="step-budget">
-        <label>预算</label><input type="number" min="0" value="100" onchange="updateTotals()" />元
-        <label>辅料</label><input type="number" min="0" value="0" onchange="updateTotals()" />元
-      </div>
-      <div class="card-actions">
-        <button onclick="toggleStep(this)">完成</button>
-        <button class="undo" onclick="toggleStep(this, true)" style="display:none;">撤销</button>
-      </div>
-    </li>
-    <li>
-      <div>拆掉旧热水器进水管 <span class="important">注意：封闭好接口，防止漏水！</span></div>
-      <div class="step-img"><img src="旧热水器.jpg" alt="示意图"></div>
-      <div class="step-budget">
-        <label>预算</label><input type="number" min="0" value="0" onchange="updateTotals()" />元
-        <label>辅料</label><input type="number" min="0" value="0" onchange="updateTotals()" />元
-      </div>
-      <div class="card-actions">
-        <button onclick="toggleStep(this)">完成</button>
-        <button class="undo" onclick="toggleStep(this, true)" style="display:none;">撤销</button>
-      </div>
-    </li>
-    <li>
-      <div>拆掉旧热水器出水管（该管连到旧卫浴热水开关，因旧卫浴也要拆除，无影响）</div>
-      <div class="step-img"><img src="旧热水器.jpg" alt="示意图"></div>
-      <div class="step-budget">
-        <label>预算</label><input type="number" min="0" value="0" onchange="updateTotals()" />元
-        <label>辅料</label><input type="number" min="0" value="0" onchange="updateTotals()" />元
-      </div>
-      <div class="card-actions">
-        <button onclick="toggleStep(this)">完成</button>
-        <button class="undo" onclick="toggleStep(this, true)" style="display:none;">撤销</button>
-      </div>
-    </li>
-    <li>
-      <div>拆除旧热水器卫浴（花洒头、花洒软管、开关全部丢弃。冷水管预计保留，后续接新卫浴冷水进口。热水管连接旧电热水器出水口，拆下备用）</div>
-      <div class="step-img"><img src="旧卫浴.png" alt="示意图"></div>
-      <div class="step-budget">
-        <label>预算</label><input type="number" min="0" value="0" onchange="updateTotals()" />元
-        <label>辅料</label><input type="number" min="0" value="0" onchange="updateTotals()" />元
-      </div>
-      <div class="card-actions">
-        <button onclick="toggleStep(this)">完成</button>
-        <button class="undo" onclick="toggleStep(this, true)" style="display:none;">撤销</button>
-      </div>
-    </li>
-    <li>
-      <div>回收残余材料（主要为进出两端水管）</div>
-      <div class="step-img"></div>
-      <div class="step-budget">
-        <label>预算</label><input type="number" min="0" value="0" onchange="updateTotals()" />元
-        <label>辅料</label><input type="number" min="0" value="0" onchange="updateTotals()" />元
-      </div>
-      <div class="card-actions">
-        <button onclick="toggleStep(this)">完成</button>
-        <button class="undo" onclick="toggleStep(this, true)" style="display:none;">撤销</button>
-      </div>
-    </li>
-  </ul>
-  <div class="step"><span class="important">2. 改造燃热进出水路</span></div>
-  <ul class="card-list" id="step2">
-    <li>
-      <div>燃热进水路由生锈开关控制，<span class="important">如无特殊需求无需改造</span>，如需改造现场另议</div>
-      <div class="step-img"><img src="燃热进水路控制.jpg" alt="示意图"></div>
-      <div class="step-budget">
-        <label>预算</label><input type="number" min="0" value="0" onchange="updateTotals()" />元
-        <label>辅料</label><input type="number" min="0" value="0" onchange="updateTotals()" />元
-      </div>
-      <div class="card-actions">
-        <button onclick="toggleStep(this)">完成</button>
-        <button class="undo" onclick="toggleStep(this, true)" style="display:none;">撤销</button>
-      </div>
-    </li>
-    <li>
-      <div>燃热出水路目前无控制，<span class="important">需重点改造</span>，请现场给出方案并报价</div>
-      <div class="step-img"><img src="%E7%87%83%E7%83%AD_%E5%87%BA%E6%B0%B4%E7%AE%A1.png" alt="示意图"><img src="燃热出水路控制2.jpg" alt="示意图"></div>
-      <div class="step-budget">
-        <label>预算</label><input type="number" min="0" value="0" onchange="updateTotals()" />元
-        <label>辅料</label><input type="number" min="0" value="0" onchange="updateTotals()" />元
-      </div>
-      <div class="card-actions">
-        <button onclick="toggleStep(this)">完成</button>
-        <button class="undo" onclick="toggleStep(this, true)" style="display:none;">撤销</button>
-      </div>
-    </li>
-  </ul>
-  <div class="step"><span class="important">3. 安装燃热卫浴</span></div>
-  <ul class="card-list" id="step3">
-    <li>
-      <div>燃热卫浴剩余混水阀未安装，预计操作如下：</div>
-    </li>
-    <ul class="card-list" id="step3a" style="margin-left:18px;">
-      <li>
-        <div>安装混水阀</div>
-        <div class="step-img"><img src="燃热卫浴_混水阀.jpg" alt="示意图"></div>
-        <div class="step-budget">
-          <label>预算</label><input type="number" min="0" value="0" onchange="updateTotals()" />元
-          <label>辅料</label><input type="number" min="0" value="0" onchange="updateTotals()" />元
+    <div class="app-container">
+        <!-- 侧边栏 -->
+        <div class="notes-list-panel animate__animated animate__fadeInLeft">
+            <div class="sidebar-header">
+                <h2><i class="fas fa-book-open"></i> 笔记列表</h2>
+                <p class="sidebar-subtitle">管理你的知识库</p>
+                <input type="text" id="searchInput" class="search-input" placeholder="搜索笔记..." autocomplete="off" />
+            </div>
+            
+            <button id="addNoteBtn" class="btn-primary">
+                <i class="fas fa-plus"></i> 新建笔记
+            </button>
+            
+            <div class="notes-container">
+                <ul id="notesList"></ul>
+            </div>
         </div>
-        <div class="card-actions">
-          <button onclick="toggleStep(this)">完成</button>
-          <button class="undo" onclick="toggleStep(this, true)" style="display:none;">撤销</button>
+        
+        <!-- 主内容区域 -->
+        <div class="note-main-panel animate__animated animate__fadeIn">
+            <!-- 笔记头部 -->
+            <div class="note-header">
+                <div class="title-section">
+                    <input type="text" id="noteTitle" placeholder="输入笔记标题...">
+                    <div class="title-actions">
+                        <span class="word-count" id="wordCount">0 字</span>
+                    </div>
+                </div>
+                
+                <div class="note-actions">
+                    <button id="editBtn" class="btn-edit">
+                        <i class="fas fa-edit"></i> 编辑笔记
+                    </button>
+                    <button id="saveVersionBtn" class="btn-save">
+                        <i class="fas fa-save"></i> 保存版本
+                    </button>
+                    <button id="showVersionsBtn" class="btn-history">
+                        <i class="fas fa-history"></i> 查看历史
+                    </button>
+                </div>
+            </div>
+            
+            <!-- 云同步按钮和弹窗 -->
+            <div class="cloud-sync-bar">
+                <button id="cloudSyncBtn" class="cloud-sync-btn" title="云同步"><i class="fas fa-cloud"></i></button>
+            </div>
+            <div id="cloudSyncModal" class="cloud-sync-modal hidden">
+                <div class="cloud-sync-modal-content">
+                    <h3><i class="fas fa-cloud"></i> 云同步设置</h3>
+                    <label>GitHub Token <input type="password" id="cloudTokenInput" placeholder="GitHub Token" autocomplete="off"></label>
+                    <label>Gist ID（可留空自动创建）<input type="text" id="cloudGistIdInput" placeholder="Gist ID"></label>
+                    <div class="cloud-sync-modal-actions">
+                        <button id="cloudSyncPullBtn" class="btn-primary"><i class="fas fa-download"></i> 拉取云端</button>
+                        <button id="cloudSyncPushBtn" class="btn-primary"><i class="fas fa-upload"></i> 上传云端</button>
+                        <button id="cloudSyncCloseBtn" class="btn-close"><i class="fas fa-times"></i></button>
+                    </div>
+                    <div id="cloudSyncStatus" class="cloud-sync-status"></div>
+                </div>
+            </div>
+            
+            <!-- 笔记内容区域 -->
+            <div class="content-area">
+                <div id="notePreview" class="markdown-body"></div>
+                <textarea id="noteEditor" placeholder="在此输入笔记内容...&#10;&#10;支持 Markdown 语法：&#10;# 标题&#10;**粗体** *斜体*&#10;- 列表项&#10;```代码块```"></textarea>
+            </div>
         </div>
-      </li>
-      <li>
-        <div>将花洒软管从燃热出水管拆下，装到新卫浴混水阀上</div>
-        <div class="step-img"><img src="%E8%8A%B1%E6%B4%92%E8%BD%AF%E7%AE%A11.png" alt="示意图"><img src="%E8%8A%B1%E6%B4%92%E8%BD%AF%E7%AE%A12.png"></div>
-        <div class="step-budget">
-          <label>预算</label><input type="number" min="0" value="0" onchange="updateTotals()" />元
-          <label>辅料</label><input type="number" min="0" value="0" onchange="updateTotals()" />元
+    </div>
+    
+    <!-- 版本历史面板 -->
+    <div id="versionsPanel">
+        <div class="panel-header">
+            <h3><i class="fas fa-clock"></i> 历史版本</h3>
+            <button id="closeVersionsBtn" class="btn-close">
+                <i class="fas fa-times"></i>
+            </button>
         </div>
-        <div class="card-actions">
-          <button onclick="toggleStep(this)">完成</button>
-          <button class="undo" onclick="toggleStep(this, true)" style="display:none;">撤销</button>
+        <div class="versions-container">
+            <ul id="versionsList"></ul>
         </div>
-      </li>
-      <li>
-        <div>将旧卫浴冷水管接到新卫浴混水阀冷水进口</div>
-        <div class="step-img"><img src="%E6%97%A7%E5%8D%AB%E6%B5%B4_%E5%86%B7%E6%B0%B4%E7%AE%A1.png" alt="示意图"></div>
-        <div class="step-budget">
-          <label>预算</label><input type="number" min="0" value="0" onchange="updateTotals()" />元
-          <label>辅料</label><input type="number" min="0" value="0" onchange="updateTotals()" />元
-        </div>
-        <div class="card-actions">
-          <button onclick="toggleStep(this)">完成</button>
-          <button class="undo" onclick="toggleStep(this, true)" style="display:none;">撤销</button>
-        </div>
-      </li>
-      <li>
-        <div>将燃热出水管接到混水阀热水进口</div>
-        <div class="step-img"><img src="%E7%87%83%E7%83%AD_%E5%87%BA%E6%B0%B4%E7%AE%A1.png" alt="示意图"></div>
-        <div class="step-budget">
-          <label>预算</label><input type="number" min="0" value="0" onchange="updateTotals()" />元
-          <label>辅料</label><input type="number" min="0" value="0" onchange="updateTotals()" />元
-        </div>
-        <div class="card-actions">
-          <button onclick="toggleStep(this)">完成</button>
-          <button class="undo" onclick="toggleStep(this, true)" style="display:none;">撤销</button>
-        </div>
-      </li>
-    </ul>
-  </ul>
-  <div style="margin-top:30px; color:#888;">验收人签字：<span style="display:inline-block; width:200px; border-bottom:1px solid #ccc;"></span></div>
-  <div style="margin-top:10px; color:#888;">日期：<span style="display:inline-block; width:120px; border-bottom:1px solid #ccc;"></span></div>
-</div>
-<script>
-function toggleStep(btn, undo) {
-  var li = btn.closest('li');
-  var doneBtn = li.querySelector('button:not(.undo)');
-  var undoBtn = li.querySelector('button.undo');
-  if (undo) {
-    li.classList.remove('completed');
-    doneBtn.disabled = false;
-    undoBtn.style.display = 'none';
-    doneBtn.style.display = '';
-  } else {
-    li.classList.add('completed');
-    doneBtn.disabled = true;
-    undoBtn.style.display = '';
-    doneBtn.style.display = 'none';
-  }
-}
-function updateTotals() {
-  var totalBudget = 0, totalMaterial = 0;
-  document.querySelectorAll('.card-list li').forEach(function(li) {
-    var inputs = li.querySelectorAll('input[type="number"]');
-    if (inputs.length >= 2) {
-      var budget = parseFloat(inputs[0].value) || 0;
-      var material = parseFloat(inputs[1].value) || 0;
-      totalBudget += budget;
-      totalMaterial += material;
-    }
-  });
-  document.getElementById('totalBudget').textContent = totalBudget;
-  document.getElementById('totalMaterial').textContent = totalMaterial;
-}
-document.addEventListener('input', function(e) {
-  if (e.target.matches('.step-budget input')) updateTotals();
-});
-window.onload = updateTotals;
-</script>
+    </div>
+    
+    <!-- 加载脚本 -->
+    <script src="app.js"></script>
 </body>
 </html>
