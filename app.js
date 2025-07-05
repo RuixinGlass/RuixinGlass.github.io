@@ -33,6 +33,45 @@ const cloudSyncStatus = document.getElementById('cloudSyncStatus');
 // 云同步拉取Gist
 const cloudSyncPullBtn = document.getElementById('cloudSyncPullBtn');
 
+// 移动端更多按钮弹出菜单逻辑
+const mobileMenuBtn = document.getElementById('mobile-menu-btn');
+const mobileMenuDropdown = document.getElementById('mobile-menu-dropdown');
+
+// ===== PC端侧栏收起/展开逻辑 =====
+window.addEventListener('DOMContentLoaded', function() {
+    const pcDrawerToggle = document.getElementById('pc-drawer-toggle');
+    const pcDrawerArrow = document.getElementById('pc-drawer-arrow');
+    const pcPanel = document.querySelector('.notes-list-panel');
+    if (pcDrawerToggle && pcDrawerArrow && pcPanel) {
+        // 根据初始class状态设置collapsed变量
+        let collapsed = pcPanel.classList.contains('drawer-collapsed');
+        // 根据初始状态设置正确的箭头方向
+        if (collapsed) {
+            pcDrawerArrow.setAttribute('points', '12,8 18,14 12,20'); // 朝右（收起状态）
+        } else {
+            pcDrawerArrow.setAttribute('points', '16,8 10,14 16,20'); // 朝左（展开状态）
+        }
+        pcDrawerToggle.addEventListener('click', () => {
+            collapsed = !collapsed;
+            pcPanel.classList.toggle('drawer-collapsed', collapsed);
+            // 切换箭头方向
+            if (collapsed) {
+                pcDrawerArrow.setAttribute('points', '12,8 18,14 12,20'); // 朝右
+            } else {
+                pcDrawerArrow.setAttribute('points', '16,8 10,14 16,20'); // 朝左
+            }
+        });
+    }
+
+    var cloudSyncBtnMobile = document.getElementById('cloudSyncBtnMobile');
+    if (cloudSyncBtnMobile && cloudSyncBtn) {
+        cloudSyncBtnMobile.addEventListener('click', function(e) {
+            e.preventDefault();
+            cloudSyncBtn.click();
+        });
+    }
+});
+
 let searchKeyword = '';
 
 // 初始化
@@ -62,7 +101,7 @@ function init() {
     // 默认隐藏编辑区，显示预览区
     noteEditorEl.style.display = 'none';
     notePreviewEl.style.display = 'block';
-    editBtn.innerHTML = '<i class="fas fa-edit"></i> 编辑笔记';
+    editBtn.innerHTML = '<i class="fas fa-edit"></i><span class="btn-text"> 编辑笔记</span>';
     
     // 初始化字数统计
     updateWordCount();
@@ -167,7 +206,7 @@ function switchNote(noteId) {
     // 确保处于预览模式
     noteEditorEl.style.display = 'none';
     notePreviewEl.style.display = 'block';
-    editBtn.innerHTML = '<i class="fas fa-edit"></i> 编辑笔记';
+    editBtn.innerHTML = '<i class="fas fa-edit"></i><span class="btn-text"> 编辑笔记</span>';
     
     // 更新字数统计
     updateWordCount();
@@ -265,7 +304,7 @@ function saveVersion() {
     // 切换到预览模式
     noteEditorEl.style.display = 'none';
     notePreviewEl.style.display = 'block';
-    editBtn.innerHTML = '<i class="fas fa-edit"></i> 编辑笔记';
+    editBtn.innerHTML = '<i class="fas fa-edit"></i><span class="btn-text"> 编辑笔记</span>';
     
     saveToLocalStorage();
 }
@@ -402,7 +441,7 @@ function restoreVersion(versionIndex) {
     // 切换到预览模式
     noteEditorEl.style.display = 'none';
     notePreviewEl.style.display = 'block';
-    editBtn.textContent = '编辑笔记';
+    editBtn.innerHTML = '<i class="fas fa-edit"></i><span class="btn-text"> 编辑笔记</span>';
     
     saveToLocalStorage();
     showToast('版本已恢复');
@@ -471,7 +510,7 @@ function setupEventListeners() {
     // 让新笔记处于编辑状态
     noteEditorEl.style.display = 'block';
     notePreviewEl.style.display = 'none';
-    editBtn.innerHTML = '<i class="fas fa-eye"></i> 预览笔记';
+    editBtn.innerHTML = '<i class="fas fa-eye"></i><span class="btn-text"> 预览笔记</span>';
     noteTitleEl.focus();
     });
     
@@ -481,12 +520,12 @@ function setupEventListeners() {
             // 切换到编辑模式
             noteEditorEl.style.display = 'block';
             notePreviewEl.style.display = 'none';
-            editBtn.innerHTML = '<i class="fas fa-eye"></i> 预览笔记';
+            editBtn.innerHTML = '<i class="fas fa-eye"></i><span class="btn-text"> 预览笔记</span>';
         } else {
             // 切换回预览模式
             noteEditorEl.style.display = 'none';
             notePreviewEl.style.display = 'block';
-            editBtn.innerHTML = '<i class="fas fa-edit"></i> 编辑笔记';
+            editBtn.innerHTML = '<i class="fas fa-edit"></i><span class="btn-text"> 编辑笔记</span>';
             
             // 如果内容有变化，自动保存
             if (notesData.currentNoteId && 
@@ -584,6 +623,49 @@ function setupEventListeners() {
                 cloudSyncStatus.textContent = '拉取失败：' + err.message;
             }
         });
+    }
+
+    // 移动端菜单逻辑
+    if (mobileMenuBtn && mobileMenuDropdown) {
+        // 确保菜单初始隐藏
+        mobileMenuDropdown.style.display = 'none';
+        let menuOpen = false;
+        // 显示/隐藏菜单
+        mobileMenuBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            menuOpen = !menuOpen;
+            mobileMenuDropdown.style.display = menuOpen ? 'block' : 'none';
+        });
+        // 点击空白处关闭菜单
+        document.addEventListener('click', (e) => {
+            if (menuOpen) {
+                if (!mobileMenuDropdown.contains(e.target) && e.target !== mobileMenuBtn) {
+                    mobileMenuDropdown.style.display = 'none';
+                    menuOpen = false;
+                }
+            }
+        });
+        // 菜单按钮事件绑定
+        document.getElementById('mobile-new-note').onclick = () => {
+            mobileMenuDropdown.style.display = 'none';
+            menuOpen = false;
+            document.getElementById('new-note-btn')?.click();
+        };
+        document.getElementById('mobile-upload-cloud').onclick = () => {
+            mobileMenuDropdown.style.display = 'none';
+            menuOpen = false;
+            document.getElementById('upload-cloud-btn')?.click();
+        };
+        document.getElementById('mobile-download-cloud').onclick = () => {
+            mobileMenuDropdown.style.display = 'none';
+            menuOpen = false;
+            document.getElementById('download-cloud-btn')?.click();
+        };
+        document.getElementById('mobile-more').onclick = () => {
+            mobileMenuDropdown.style.display = 'none';
+            menuOpen = false;
+            document.getElementById('more-btn')?.click();
+        };
     }
 }
 
