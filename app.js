@@ -1040,3 +1040,33 @@ function loadScript(src) {
         document.head.appendChild(s);
     });
 }
+
+// 恢复saveVersion函数，实现自动保存和新建版本
+function saveVersion() {
+    if (!notesData.currentNoteId) return;
+    const note = notesData.notes[notesData.currentNoteId];
+    const currentContent = noteEditorEl.value;
+    // 如果内容没变，不保存
+    if (note.content === currentContent) return;
+    // 生成版本信息
+    const version = {
+        hash: generateVersionHash(currentContent),
+        timestamp: new Date().toISOString(),
+        content: currentContent,
+        message: '自动保存',
+        diff: note.versions && note.versions.length > 0
+            ? diffVersions(note.versions[0].content, currentContent)
+            : []
+    };
+    if (!note.versions) note.versions = [];
+    note.versions.unshift(version);
+    // 更新笔记内容
+    note.content = currentContent;
+    note.lastModified = new Date().toISOString();
+    // 更新UI
+    renderMarkdown(currentContent);
+    updateWordCount();
+    renderNotesList();
+    showToast('已自动保存并生成新版本');
+    saveToLocalStorage();
+}
