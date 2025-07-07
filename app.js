@@ -37,37 +37,133 @@ const cloudSyncPullBtn = document.getElementById('cloudSyncPullBtn');
 const mobileMenuBtn = document.getElementById('mobile-menu-btn');
 const mobileMenuDropdown = document.getElementById('mobile-menu-dropdown');
 
-// ===== PC端侧栏收起/展开逻辑 =====
+// ===== 统一初始化逻辑，合并侧栏初始状态设置 =====
 window.addEventListener('DOMContentLoaded', function() {
+    // 只在PC端移除drawer-collapsed，移动端不处理
+    const sidebar = document.querySelector('.notes-list-panel');
+    if (sidebar && window.innerWidth > 768) {
+        sidebar.classList.remove('drawer-collapsed');
+    }
+
+    // 2. PC端极简箭头控制侧栏
     const pcDrawerToggle = document.getElementById('pc-drawer-toggle');
     const pcDrawerArrow = document.getElementById('pc-drawer-arrow');
-    const pcPanel = document.querySelector('.notes-list-panel');
+    const pcPanel = sidebar;
     if (pcDrawerToggle && pcDrawerArrow && pcPanel) {
-        // 根据初始class状态设置collapsed变量
         let collapsed = pcPanel.classList.contains('drawer-collapsed');
-        // 根据初始状态设置正确的箭头方向
         if (collapsed) {
-            pcDrawerArrow.setAttribute('points', '12,8 18,14 12,20'); // 朝右（收起状态）
+            pcDrawerArrow.setAttribute('points', '12,8 18,14 12,20');
         } else {
-            pcDrawerArrow.setAttribute('points', '16,8 10,14 16,20'); // 朝左（展开状态）
+            pcDrawerArrow.setAttribute('points', '16,8 10,14 16,20');
         }
         pcDrawerToggle.addEventListener('click', () => {
             collapsed = !collapsed;
             pcPanel.classList.toggle('drawer-collapsed', collapsed);
-            // 切换箭头方向
             if (collapsed) {
-                pcDrawerArrow.setAttribute('points', '12,8 18,14 12,20'); // 朝右
+                pcDrawerArrow.setAttribute('points', '12,8 18,14 12,20');
             } else {
-                pcDrawerArrow.setAttribute('points', '16,8 10,14 16,20'); // 朝左
+                pcDrawerArrow.setAttribute('points', '16,8 10,14 16,20');
             }
         });
     }
 
+    // 3. 云同步移动端按钮
     var cloudSyncBtnMobile = document.getElementById('cloudSyncBtnMobile');
     if (cloudSyncBtnMobile && cloudSyncBtn) {
         cloudSyncBtnMobile.addEventListener('click', function(e) {
             e.preventDefault();
             cloudSyncBtn.click();
+        });
+    }
+
+    // 4. 移动端侧栏滑动手势
+    let startX = 0;
+    let startY = 0;
+    let isTouching = false;
+    const drawerCollapsedClass = 'drawer-collapsed';
+    function isMobile() { return window.innerWidth <= 768; }
+    document.addEventListener('touchstart', function(e) {
+        if (!isMobile()) return;
+        if (e.touches.length !== 1) return;
+        startX = e.touches[0].clientX;
+        startY = e.touches[0].clientY;
+        isTouching = true;
+    }, {passive: true});
+    document.addEventListener('touchend', function(e) {
+        if (!isMobile() || !isTouching) return;
+        isTouching = false;
+        const endX = e.changedTouches[0].clientX;
+        const endY = e.changedTouches[0].clientY;
+        const deltaX = endX - startX;
+        const deltaY = Math.abs(endY - startY);
+        if (deltaY > 80) return;
+        if (startX < 40 && deltaX > 40 && sidebar && sidebar.classList.contains(drawerCollapsedClass)) {
+            sidebar.classList.remove(drawerCollapsedClass);
+        }
+        if (startX > 180 && deltaX < -40 && sidebar && !sidebar.classList.contains(drawerCollapsedClass)) {
+            sidebar.classList.add(drawerCollapsedClass);
+        }
+    }, {passive: true});
+
+    // 5. 移动端小箭头点击
+    const mobileHint = document.querySelector('.mobile-drawer-hint');
+    if (mobileHint && sidebar) {
+        mobileHint.addEventListener('click', function(e) {
+            if (!isMobile()) return;
+            if (sidebar.classList.contains(drawerCollapsedClass)) {
+                sidebar.classList.remove(drawerCollapsedClass);
+            } else {
+                sidebar.classList.add(drawerCollapsedClass);
+            }
+        });
+    }
+
+    // 6. 侧栏展开/收起时同步更新移动端小箭头方向
+    function updateMobileDrawerHint() {
+        const hint = document.querySelector('.mobile-drawer-hint');
+        if (!sidebar || !hint) return;
+        if (sidebar.classList.contains('drawer-collapsed')) {
+            hint.classList.remove('sidebar-open');
+        } else {
+            hint.classList.add('sidebar-open');
+        }
+    }
+    const observer = new MutationObserver(updateMobileDrawerHint);
+    observer.observe(sidebar, { attributes: true, attributeFilter: ['class'] });
+    updateMobileDrawerHint();
+
+    // 7. PC端极简箭头同步
+    const pcHint = document.querySelector('.pc-drawer-hint');
+    function updatePcDrawerHint() {
+        if (!sidebar || !pcHint) return;
+        if (sidebar.classList.contains(drawerCollapsedClass)) {
+            pcHint.classList.remove('sidebar-open');
+        } else {
+            pcHint.classList.add('sidebar-open');
+        }
+    }
+    if (pcHint && sidebar) {
+        pcHint.addEventListener('click', function(e) {
+            if (!(!isMobile())) return;
+            if (sidebar.classList.contains(drawerCollapsedClass)) {
+                sidebar.classList.remove(drawerCollapsedClass);
+            } else {
+                sidebar.classList.add(drawerCollapsedClass);
+            }
+        });
+        const observer2 = new MutationObserver(updatePcDrawerHint);
+        observer2.observe(sidebar, { attributes: true, attributeFilter: ['class'] });
+        updatePcDrawerHint();
+    }
+
+    if (sidebar) {
+        let scrollTimeout;
+        sidebar.addEventListener('scroll', function() {
+            sidebar.classList.add('scrolling');
+            clearTimeout(scrollTimeout);
+            scrollTimeout = setTimeout(() => {
+                sidebar.classList.remove('scrolling');
+            }, 400); // 滚动停止400ms后移除
         });
     }
 });
@@ -503,15 +599,15 @@ function setupEventListeners() {
         };
         notesData.notes[noteId] = newNote;
         
-            // 立即切换并保存
-    switchNote(noteId);
-    saveToLocalStorage();
-    renderNotesList();
-    // 让新笔记处于编辑状态
-    noteEditorEl.style.display = 'block';
-    notePreviewEl.style.display = 'none';
+        // 立即切换并保存
+        switchNote(noteId);
+        saveToLocalStorage();
+        renderNotesList();
+        // 让新笔记处于编辑状态
+        noteEditorEl.style.display = 'block';
+        notePreviewEl.style.display = 'none';
     editBtn.innerHTML = '<i class="fas fa-eye"></i><span class="btn-text"> 预览笔记</span>';
-    noteTitleEl.focus();
+        noteTitleEl.focus();
     });
     
     // 编辑/预览切换
@@ -520,13 +616,14 @@ function setupEventListeners() {
             // 切换到编辑模式
             noteEditorEl.style.display = 'block';
             notePreviewEl.style.display = 'none';
+            noteEditorEl.classList.add('editing');
             editBtn.innerHTML = '<i class="fas fa-eye"></i><span class="btn-text"> 预览笔记</span>';
         } else {
             // 切换回预览模式
             noteEditorEl.style.display = 'none';
             notePreviewEl.style.display = 'block';
+            noteEditorEl.classList.remove('editing');
             editBtn.innerHTML = '<i class="fas fa-edit"></i><span class="btn-text"> 编辑笔记</span>';
-            
             // 如果内容有变化，自动保存
             if (notesData.currentNoteId && 
                 notesData.notes[notesData.currentNoteId].content !== noteEditorEl.value) {
