@@ -410,14 +410,10 @@ pre, code {
   align-items: flex-start;
 }
 
-#notePreview, #noteEditor {
-  padding: var(--spacing-2xl) 0;
-  overflow-y: auto;
-  background: var(--content-bg);
-  transition: all var(--transition-normal);
-  min-height: 400px;
-  height: 100%;
-  box-sizing: border-box;
+#notePreview, #noteEditor, .CodeMirror, .CodeMirror-scroll {
+  min-height: unset !important;
+  height: unset !important;
+  max-height: unset !important;
 }
 
 #noteEditor {
@@ -1024,6 +1020,17 @@ pre, code {
   }
   .pc-drawer-hint svg {
     display: block;
+  }
+  .CodeMirror {
+    max-width: 900px !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+    padding-top: 32px !important;
+    padding-bottom: 32px !important;
+  }
+  .content-area.editing-mode {
+    background: #f8f8f5 !important;
+    transition: background 0.2s;
   }
 }
 @media (max-width: 768px) {
@@ -1773,4 +1780,60 @@ code {
 .import-option-btn:hover i {
   color: var(--text-light);
 }
+
+/* Codemirror 5 极简学术风格（无圆角无边框无底部空白，自动高度） */
+.CodeMirror {
+  font-family: var(--font-sans, 'Inter', 'PingFang SC', 'Helvetica Neue', Arial, 'Segoe UI', sans-serif) !important;
+  font-size: 1.05rem !important;
+  line-height: 1.7 !important;
+  background: #f8f8f5 !important;
+  color: #222 !important;
+  border-radius: 0 !important;
+  border: none !important;
+  box-shadow: none;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  transition: box-shadow 0.2s;
+}
+.CodeMirror-focused {
+  box-shadow: none;
+  border-color: transparent;
+}
+.CodeMirror-scroll {
+  overflow: visible !important;
+  max-height: none !important;
+}
+.CodeMirror-gutters {
+  background: transparent !important;
+  border: none !important;
+}
+.CodeMirror-cursor {
+  border-left: 2px solid #888 !important;
+}
+.CodeMirror-linenumber {
+  color: #bfc0c0;
+  font-size: 0.95em;
+}
+.CodeMirror-vscrollbar, .CodeMirror-hscrollbar {
+  background: transparent !important;
+}
+
+@media (min-width: 769px) {
+  .CodeMirror {
+    max-width: 900px !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+    padding-top: 32px !important;
+    padding-bottom: 32px !important;
+  }
+}
+
+@media (min-width: 769px) {
+  .content-area.editing-mode {
+    background: #f8f8f5 !important;
+    transition: background 0.2s;
+  }
+}
+
 
