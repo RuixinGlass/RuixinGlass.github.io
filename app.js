@@ -11,7 +11,6 @@ const noteTitleEl = document.getElementById('noteTitle');
 const noteEditorEl = document.getElementById('noteEditor');
 const notePreviewEl = document.getElementById('notePreview');
 const editBtn = document.getElementById('editBtn');
-const saveVersionBtn = document.getElementById('saveVersionBtn');
 const showVersionsBtn = document.getElementById('showVersionsBtn');
 const versionsPanelEl = document.getElementById('versionsPanel');
 const versionsListEl = document.getElementById('versionsList');
@@ -36,6 +35,22 @@ const cloudSyncPullBtn = document.getElementById('cloudSyncPullBtn');
 // 移动端更多按钮弹出菜单逻辑
 const mobileMenuBtn = document.getElementById('mobile-menu-btn');
 const mobileMenuDropdown = document.getElementById('mobile-menu-dropdown');
+
+// 当前选中的标签（支持多选）
+let selectedTags = [];
+
+// 单篇笔记导出功能
+const exportNoteBtn = document.getElementById('exportNoteBtn');
+
+// 全部导入功能
+const importAllBtn = document.getElementById('importAllBtn');
+
+// 导入弹窗交互
+const importModal = document.getElementById('importModal');
+const importMdBtn = document.getElementById('importMdBtn');
+const importFolderBtn = document.getElementById('importFolderBtn');
+const importZipBtn = document.getElementById('importZipBtn');
+const importModalCloseBtn = document.getElementById('importModalCloseBtn');
 
 // ===== 统一初始化逻辑，合并侧栏初始状态设置 =====
 window.addEventListener('DOMContentLoaded', function() {
@@ -166,6 +181,17 @@ window.addEventListener('DOMContentLoaded', function() {
             }, 400); // 滚动停止400ms后移除
         });
     }
+
+    const noteHeader = document.querySelector('.note-header');
+    const mainContent = document.querySelector('.note-main-panel') || window;
+    (mainContent || window).addEventListener('scroll', function() {
+        const scrollTop = mainContent.scrollTop || window.scrollY || 0;
+        if (scrollTop > 60) {
+            noteHeader.classList.add('shrink');
+        } else {
+            noteHeader.classList.remove('shrink');
+        }
+    });
 });
 
 let searchKeyword = '';
@@ -226,21 +252,33 @@ function saveToLocalStorage() {
 // 渲染笔记列表
 function renderNotesList() {
     notesListEl.innerHTML = '';
-    // 过滤笔记
-    const filteredNotes = Object.keys(notesData.notes).filter(noteId => {
-        const note = notesData.notes[noteId];
-        if (!searchKeyword) return true;
+    // 标签筛选
+    let filteredNotes = Object.keys(notesData.notes);
+    if (selectedTags.length > 0) {
+        filteredNotes = filteredNotes.filter(noteId => {
+            const note = notesData.notes[noteId];
+            const meta = parseFrontMatter(note.content);
+            if (!meta.tags || !Array.isArray(meta.tags)) return false;
+            return selectedTags.every(tag => meta.tags.includes(tag));
+        });
+    }
+    // 搜索关键词筛选
+    if (searchKeyword) {
         const kw = searchKeyword.toLowerCase();
-        return (
-            (note.title && note.title.toLowerCase().includes(kw)) ||
-            (note.content && note.content.toLowerCase().includes(kw))
-        );
-    });
+        filteredNotes = filteredNotes.filter(noteId => {
+            const note = notesData.notes[noteId];
+            return (
+                (note.title && note.title.toLowerCase().includes(kw)) ||
+                (note.content && note.content.toLowerCase().includes(kw))
+            );
+        });
+    }
     if (filteredNotes.length === 0) {
         const li = document.createElement('li');
         li.className = 'empty-state';
         li.innerHTML = '<span>未找到相关笔记</span>';
         notesListEl.appendChild(li);
+        renderTagsList();
         return;
     }
     filteredNotes.forEach(noteId => {
@@ -258,6 +296,12 @@ function renderNotesList() {
             </div>
         `;
         li.dataset.noteId = noteId;
+        // 切换笔记事件
+        li.onclick = () => {
+            if (notesData.currentNoteId !== noteId) {
+                switchNote(noteId);
+            }
+        };
         // 删除按钮
         const delBtn = document.createElement('button');
         delBtn.className = 'note-delete-btn';
@@ -276,7 +320,7 @@ function renderNotesList() {
                     } else {
                         noteTitleEl.value = '';
                         noteEditorEl.value = '';
-                        notePreviewEl.innerHTML = '<div class="empty-state"><h3><i class="fas fa-book-open"></i> 欢迎使用笔记系统</h3><p>点击左侧的"新建笔记"按钮开始记录你的想法</p></div>';
+                        notePreviewEl.innerHTML = '<div class="empty-state"><h3><i class="fas fa-book-open"></i> 欢迎使用笔记系统</h3><p>点击左侧的\"新建笔记\"按钮开始记录你的想法</p></div>';
                     }
                 }
                 saveToLocalStorage();
@@ -286,6 +330,7 @@ function renderNotesList() {
         li.appendChild(delBtn);
         notesListEl.appendChild(li);
     });
+    renderTagsList();
 }
 
 // 切换笔记
@@ -364,45 +409,6 @@ function diffVersions(oldContent, newContent) {
     }
     
     return diff;
-}
-
-// 保存当前笔记的版本
-function saveVersion() {
-    if (!notesData.currentNoteId) return;
-    
-    const note = notesData.notes[notesData.currentNoteId];
-    const currentContent = noteEditorEl.value;
-    
-    // 生成版本信息
-    const version = {
-        hash: generateVersionHash(currentContent),
-        timestamp: new Date().toISOString(),
-        content: currentContent,
-        message: prompt('请输入本次修改的备注：') || '无备注',
-        diff: note.versions && note.versions.length > 0 
-            ? diffVersions(note.versions[0].content, currentContent)
-            : []
-    };
-    
-    if (!note.versions) note.versions = [];
-    note.versions.unshift(version);
-    
-    // 更新笔记内容
-    note.content = currentContent;
-    note.lastModified = new Date().toISOString();
-    
-    // 更新UI
-    renderMarkdown(currentContent);
-    updateWordCount();
-    renderNotesList();
-    showToast('版本已保存');
-    
-    // 切换到预览模式
-    noteEditorEl.style.display = 'none';
-    notePreviewEl.style.display = 'block';
-    editBtn.innerHTML = '<i class="fas fa-edit"></i><span class="btn-text"> 编辑笔记</span>';
-    
-    saveToLocalStorage();
 }
 
 // 显示历史版本
@@ -592,13 +598,18 @@ function setupEventListeners() {
     // 新建笔记
     addNoteBtn.addEventListener('click', () => {
         const noteId = 'note_' + Date.now();
+        const today = new Date();
+        const yyyy = today.getFullYear();
+        const mm = String(today.getMonth() + 1).padStart(2, '0');
+        const dd = String(today.getDate()).padStart(2, '0');
+        const dateStr = `${yyyy}-${mm}-${dd}`;
+        const frontMatter = `---\ntitle: 新笔记\ntags: []\ndate: ${dateStr}\n---\n\n`;
         const newNote = {
             title: '新笔记',
-            content: '# 新笔记\n\n开始记录你的想法吧！',
+            content: frontMatter + '开始记录你的想法吧！',
             versions: []
         };
         notesData.notes[noteId] = newNote;
-        
         // 立即切换并保存
         switchNote(noteId);
         saveToLocalStorage();
@@ -606,7 +617,7 @@ function setupEventListeners() {
         // 让新笔记处于编辑状态
         noteEditorEl.style.display = 'block';
         notePreviewEl.style.display = 'none';
-    editBtn.innerHTML = '<i class="fas fa-eye"></i><span class="btn-text"> 预览笔记</span>';
+        editBtn.innerHTML = '<i class="fas fa-eye"></i><span class="btn-text"> 预览笔记</span>';
         noteTitleEl.focus();
     });
     
@@ -634,9 +645,6 @@ function setupEventListeners() {
     
     // 实时字数统计
     noteEditorEl.addEventListener('input', updateWordCount);
-    
-    // 保存版本
-    saveVersionBtn.addEventListener('click', saveVersion);
     
     // 显示历史版本
     showVersionsBtn.addEventListener('click', showVersions);
@@ -764,6 +772,98 @@ function setupEventListeners() {
             document.getElementById('more-btn')?.click();
         };
     }
+
+    // 单篇笔记导出功能
+    if (exportNoteBtn) {
+        exportNoteBtn.addEventListener('click', () => {
+            const noteId = notesData.currentNoteId;
+            if (!noteId || !notesData.notes[noteId]) return;
+            const note = notesData.notes[noteId];
+            // 文件名：笔记标题（去除特殊字符）
+            let fileName = (note.title || '未命名笔记').replace(/[\\/:*?"<>|]/g, '_') + '.md';
+            // 内容：含front matter
+            const content = note.content || '';
+            const blob = new Blob([content], { type: 'text/markdown' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = fileName;
+            document.body.appendChild(a);
+            a.click();
+            setTimeout(() => {
+                document.body.removeChild(a);
+                URL.revokeObjectURL(a.href);
+            }, 100);
+        });
+    }
+
+    // 全部导入功能
+    if (importAllBtn) {
+        importAllBtn.addEventListener('click', () => {
+            importModal.classList.remove('hidden');
+        });
+    }
+
+    // 导入弹窗交互
+    if (importModalCloseBtn) {
+        importModalCloseBtn.onclick = () => importModal.classList.add('hidden');
+    }
+    // 点击遮罩关闭
+    if (importModal) {
+        importModal.addEventListener('click', e => {
+            if (e.target === importModal) importModal.classList.add('hidden');
+        });
+    }
+    // ESC关闭
+    window.addEventListener('keydown', e => {
+        if (e.key === 'Escape') importModal.classList.add('hidden');
+    });
+    // 单md导入
+    if (importMdBtn) {
+        importMdBtn.onclick = () => {
+            importModal.classList.add('hidden');
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.md';
+            input.onchange = async () => {
+                if (input.files.length) await importFromFiles([input.files[0]]);
+                renderNotesList();
+                showToast('导入完成');
+            };
+            input.click();
+        };
+    }
+    // 文件夹导入
+    if (importFolderBtn) {
+        importFolderBtn.onclick = () => {
+            importModal.classList.add('hidden');
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.md';
+            input.multiple = true;
+            input.webkitdirectory = true;
+            input.onchange = async () => {
+                if (input.files.length) await importFromFiles(Array.from(input.files));
+                renderNotesList();
+                showToast('导入完成');
+            };
+            input.click();
+        };
+    }
+    // zip导入
+    if (importZipBtn) {
+        importZipBtn.onclick = () => {
+            importModal.classList.add('hidden');
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.zip';
+            input.onchange = async () => {
+                if (input.files.length) await importFromZip(input.files[0]);
+                renderNotesList();
+                showToast('导入完成');
+            };
+            input.click();
+        };
+    }
 }
 
 // 启动应用
@@ -811,4 +911,132 @@ async function fetchFromGist(token, gistId) {
     const file = result.files['notes-data.json'];
     if (!file) throw new Error('云端未找到 notes-data.json 文件');
     return JSON.parse(file.content);
+}
+
+// 解析 front matter，返回 {tags: [], ...}
+function parseFrontMatter(content) {
+    const fmMatch = content.match(/^---([\s\S]*?)---/);
+    if (!fmMatch) return {};
+    const fm = fmMatch[1];
+    const lines = fm.split(/\r?\n/);
+    const meta = {};
+    for (const line of lines) {
+        const m = line.match(/^([a-zA-Z0-9_\u4e00-\u9fa5]+):\s*(.*)$/);
+        if (m) {
+            let key = m[1].trim();
+            let value = m[2].trim();
+            if (key === 'tags') {
+                // 支持 tags: [标签1, 标签2]
+                const arrMatch = value.match(/^\[(.*)\]$/);
+                if (arrMatch) {
+                    value = arrMatch[1].split(',').map(s => s.trim().replace(/^['"]|['"]$/g, '')).filter(Boolean);
+                } else {
+                    value = value ? [value] : [];
+                }
+            }
+            meta[key] = value;
+        }
+    }
+    return meta;
+}
+
+// 获取所有标签（去重，按出现频率排序）
+function getAllTags() {
+    const tagCount = {};
+    for (const noteId in notesData.notes) {
+        const note = notesData.notes[noteId];
+        const meta = parseFrontMatter(note.content);
+        if (meta.tags && Array.isArray(meta.tags)) {
+            meta.tags.forEach(tag => {
+                if (!tag) return;
+                tagCount[tag] = (tagCount[tag] || 0) + 1;
+            });
+        }
+    }
+    // 按出现频率降序
+    return Object.keys(tagCount).sort((a, b) => tagCount[b] - tagCount[a]);
+}
+
+// 渲染标签列表到侧边栏
+function renderTagsList() {
+    const tagsListEl = document.getElementById('tagsList');
+    if (!tagsListEl) return;
+    const tags = getAllTags();
+    tagsListEl.innerHTML = '';
+    if (tags.length === 0) {
+        tagsListEl.style.display = 'none';
+        return;
+    }
+    tagsListEl.style.display = '';
+    tags.forEach(tag => {
+        const tagEl = document.createElement('span');
+        tagEl.className = 'tag-item' + (selectedTags.includes(tag) ? ' selected' : '');
+        tagEl.textContent = tag;
+        tagEl.onclick = () => {
+            // 多选：点击已选则取消，否则添加
+            if (selectedTags.includes(tag)) {
+                selectedTags = selectedTags.filter(t => t !== tag);
+            } else {
+                selectedTags.push(tag);
+            }
+            renderTagsList();
+            renderNotesList();
+        };
+        tagsListEl.appendChild(tagEl);
+    });
+}
+
+// 解析zip包批量导入
+async function importFromZip(zipFile) {
+    // 依赖JSZip库，若未引入需动态加载
+    if (typeof JSZip === 'undefined') {
+        await loadScript('https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js');
+    }
+    const zip = await JSZip.loadAsync(zipFile);
+    const mdFiles = [];
+    zip.forEach((relPath, file) => {
+        if (!file.dir && relPath.endsWith('.md')) {
+            mdFiles.push(file.async('string').then(content => ({
+                name: relPath.split('/').pop(),
+                content
+            })));
+        }
+    });
+    const files = await Promise.all(mdFiles);
+    await importFromFiles(files);
+}
+
+// 解析md文件批量导入
+async function importFromFiles(files) {
+    for (const file of files) {
+        let content = file.content || await file.text();
+        // 解析front matter，提取title
+        let title = '未命名笔记';
+        const fm = content.match(/^---([\s\S]*?)---/);
+        if (fm) {
+            const titleMatch = fm[1].match(/title:\s*(.*)/);
+            if (titleMatch) {
+                title = titleMatch[1].replace(/^['"]|['"]$/g, '').trim() || title;
+            }
+        }
+        // 生成唯一id
+        const noteId = 'note_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
+        notesData.notes[noteId] = {
+            title,
+            content,
+            versions: []
+        };
+    }
+    saveToLocalStorage();
+}
+
+// 动态加载JS
+function loadScript(src) {
+    return new Promise((resolve, reject) => {
+        const s = document.createElement('script');
+        s.src = src;
+        s.onload = resolve;
+        s.onerror = reject;
+        document.head.appendChild(s);
+    });
 }
