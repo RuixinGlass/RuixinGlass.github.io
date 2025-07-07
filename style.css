@@ -1,31 +1,37 @@
   /* 现代化WordPress风格笔记系统 - 重新设计 */
 
 :root {
-  /* 主色调 - 书卷气淡雅风 */
-  --primary-bg: #f8f5ec;         /* 米白 */
-  --secondary-bg: #fcfcfa;       /* 更浅的米白 */
-  --accent-color: #a3a380;       /* 雅致的竹青 */
-  --accent-hover: #88896f;       /* 深一点的竹青 */
-  --accent-light: #f3f4ed;       /* 竹青浅色 */
+  /* 主题色彩体系 */
+  --primary-bg: #fcfcfa;
+  --secondary-bg: #f7f7f3;
+  --sidebar-bg: #f5f5ef;
+  --content-bg: #fff;
+  --border-color: #e5e5e0;
+  --divider-color: #ecebe7;
+  --accent-color: #6a7ba2;
+  --accent-light: #f3f4ed;
+  --accent-hover: #4b5c8a;
+  --text-main: #23272e;
+  --text-light: #fff;
+  --text-secondary: #7a7a7a;
+  --highlight-bg: #f9f5d7;
+  --success: #4bb981;
+  --danger: #e57373;
+  --warning: #f7b84b;
+  --shadow-lg: 0 4px 24px 0 rgba(60, 60, 60, 0.07);
+  --shadow-md: 0 2px 8px 0 rgba(60, 60, 60, 0.06);
+  --radius-md: 0.6em;
+  --radius-sm: 0.3em;
+  --radius-lg: 1.2em;
   
   /* 文字颜色 */
   --text-primary: #3e3a39;       /* 墨色 */
-  --text-secondary: #7c7b6e;     /* 青灰 */
   --text-muted: #b0b0a7;         /* 淡灰 */
-  --text-light: #ffffff;
   
   /* 边框和阴影 */
-  --border-color: #e5e1d8;       /* 淡灰 */
   --border-light: #f3f4ed;       /* 更淡的灰 */
-  --shadow-sm: 0 1px 2px 0 rgba(60, 60, 60, 0.03);
-  --shadow-md: 0 4px 6px -1px rgba(60, 60, 60, 0.06), 0 2px 4px -1px rgba(60, 60, 60, 0.03);
-  --shadow-lg: 0 10px 15px -3px rgba(60, 60, 60, 0.08), 0 4px 6px -2px rgba(60, 60, 60, 0.03);
-  --shadow-xl: 0 20px 25px -5px rgba(60, 60, 60, 0.10), 0 10px 10px -5px rgba(60, 60, 60, 0.04);
   
   /* 圆角 */
-  --radius-sm: 0.375rem;
-  --radius-md: 0.5rem;
-  --radius-lg: 0.75rem;
   --radius-xl: 1rem;
   
   /* 间距 */
@@ -37,13 +43,22 @@
   --spacing-2xl: 3rem;
   
   /* 字体 */
-  --font-sans: 'Inter', 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
-  --font-mono: 'JetBrains Mono', 'Fira Code', Consolas, monospace;
+  --font-sans: 'Inter', 'PingFang SC', 'Helvetica Neue', Arial, 'Noto Sans SC', '思源黑体', 'Microsoft YaHei', sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Mono', 'Menlo', 'Consolas', 'Liberation Mono', monospace;
+  --font-size-base: 1.08rem;
+  --font-size-lg: 1.32rem;
+  --font-size-xl: 2.1rem;
+  --font-size-sm: 0.98rem;
+  --line-height-base: 1.78;
+  --line-height-tight: 1.3;
+  --line-height-loose: 2.1;
+  --spacing-paragraph: 1.1em;
   
   /* 过渡动画 */
   --transition-fast: 0.15s ease;
   --transition-normal: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   --transition-slow: 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  --icon-default: #b0b0a7;
 }
 
 /* 全局样式重置 */
@@ -55,12 +70,15 @@ body {
   font-family: var(--font-sans);
   font-weight: 400;
   line-height: 1.7;
-  color: var(--text-primary);
+  color: var(--text-main);
   margin: 0;
   padding: 0;
-  background: linear-gradient(135deg, var(--primary-bg) 0%, #f8fafc 100%);
+  background: var(--primary-bg);
   min-height: 100vh;
   transition: all var(--transition-normal);
+  font-size: var(--font-size-base);
+  line-height: var(--line-height-base);
+  letter-spacing: 0.01em;
 }
 
 /* 代码样式 */
@@ -83,7 +101,7 @@ pre, code {
 /* 侧边栏 - 现代化设计 */
 .notes-list-panel {
   width: 320px;
-  background: linear-gradient(180deg, var(--secondary-bg) 0%, #fefefe 100%);
+  background: var(--sidebar-bg);
   border-right: 1.5px solid var(--border-color);
   padding: var(--spacing-xl);
   box-shadow: var(--shadow-lg);
@@ -272,7 +290,7 @@ pre, code {
   flex: 1;
   display: flex;
   flex-direction: column;
-  background: var(--secondary-bg);
+  background: var(--content-bg);
   position: relative;
   overflow-y: auto;
 }
@@ -283,12 +301,13 @@ pre, code {
   justify-content: space-between;
   align-items: center;
   padding: var(--spacing-xl) var(--spacing-2xl);
-  background: var(--secondary-bg);
+  background: var(--content-bg);
   border-bottom: 1px solid var(--border-color);
   box-shadow: var(--shadow-sm);
   position: sticky;
   top: 0;
   z-index: 10;
+  transition: box-shadow 0.2s;
 }
 
 .note-header::before {
@@ -308,11 +327,12 @@ pre, code {
   margin-right: var(--spacing-lg);
 }
 
+/* 主标题输入框统一样式 */
 #noteTitle {
   width: 100%;
   max-width: 900px;
-  margin: 0 auto 0.8em auto;
-  font-size: 2.2em;
+  margin: 0 auto 0.5em auto;
+  font-size: 2em;
   font-weight: 700;
   color: #24292f;
   background: none;
@@ -320,15 +340,14 @@ pre, code {
   border-bottom: 1px solid #eaecef;
   border-radius: 0;
   box-shadow: none;
-  padding: 0 0 0.3em 0;
+  padding: 0 0 0.2em 0;
   outline: none;
   text-align: left;
   transition: none;
 }
-
 #noteTitle:focus {
   outline: none;
-  border-bottom: 1px solid var(--accent-color);
+  border-bottom: 1.5px solid var(--accent-color);
   background: none;
   box-shadow: none;
 }
@@ -351,10 +370,10 @@ pre, code {
 }
 
 .note-actions button {
-  background: var(--secondary-bg);
-  color: var(--border-color);
-  border: 1.5px solid var(--border-color);
-  border-radius: var(--radius-xl);
+  background: var(--accent-light);
+  color: var(--accent-color);
+  border: 1.2px solid var(--accent-light);
+  border-radius: var(--radius-md);
   cursor: pointer;
   font-weight: 600;
   font-size: 1rem;
@@ -364,23 +383,23 @@ pre, code {
   display: flex;
   align-items: center;
   gap: 0.5em;
-  transition: background 0.2s, color 0.2s, box-shadow 0.2s;
+  transition: background 0.18s, color 0.18s, border 0.18s;
 }
 .note-actions button:first-child {
   margin-left: 0;
 }
 .note-actions button:hover {
-  background: var(--accent-light);
-  color: var(--accent-hover);
-  border: 1.5px solid var(--accent-hover);
+  background: var(--accent-color);
+  color: var(--text-light);
+  border-color: var(--accent-hover);
 }
 
 .note-actions button i {
-  color: var(--border-color) !important;
-  transition: color 0.2s;
+  color: var(--icon-default) !important;
+  transition: color 0.18s;
 }
 .note-actions button:hover i {
-  color: var(--accent-hover) !important;
+  color: var(--accent-color) !important;
 }
 
 /* 笔记内容区域 */
@@ -394,7 +413,7 @@ pre, code {
 #notePreview, #noteEditor {
   padding: var(--spacing-2xl) 0;
   overflow-y: auto;
-  background: var(--secondary-bg);
+  background: var(--content-bg);
   transition: all var(--transition-normal);
   min-height: 400px;
   height: 100%;
@@ -414,7 +433,7 @@ pre, code {
   font-family: var(--font-sans);
   font-size: 1rem;
   line-height: 1.8;
-  color: var(--text-primary);
+  color: var(--text-main);
   background: var(--secondary-bg);
 }
 
@@ -437,7 +456,7 @@ pre, code {
   max-width: 900px;
   margin: 0 auto;
   padding: 32px 0;
-  color: var(--text-primary);
+  color: var(--text-main);
   background: transparent;
   font-family: var(--font-sans), 'Segoe UI', 'Helvetica Neue', Arial, 'Liberation Sans', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
   font-size: 1.05rem;
@@ -456,7 +475,7 @@ pre, code {
   margin-top: 2em;
   margin-bottom: 1em;
   border: none;
-  color: var(--text-primary);
+  color: var(--text-main);
 }
 .markdown-body h1 { font-size: 2.2em; border-bottom: 1px solid #eaecef; padding-bottom: 0.3em; }
 .markdown-body h2 { font-size: 1.7em; border-bottom: 1px solid #eaecef; padding-bottom: 0.3em; }
@@ -466,7 +485,7 @@ pre, code {
 
 .markdown-body p {
   margin: 1em 0;
-  color: var(--text-primary);
+  color: var(--text-main);
 }
 
 .markdown-body ul,
@@ -505,7 +524,7 @@ pre, code {
   overflow: auto;
   font-size: 0.98em;
   line-height: 1.6;
-  color: var(--text-primary);
+  color: var(--text-main);
   margin: 1.5em 0;
 }
 
@@ -558,7 +577,7 @@ pre, code {
 
 .markdown-body strong {
   font-weight: 600;
-  color: var(--text-primary);
+  color: var(--text-main);
 }
 
 .markdown-body del {
@@ -605,7 +624,7 @@ pre, code {
 
 .panel-header {
   padding: var(--spacing-xl);
-  background: var(--secondary-bg);
+  background: var(--content-bg);
   border-bottom: 1px solid var(--border-color);
   position: relative;
 }
@@ -614,7 +633,7 @@ pre, code {
   margin: 0;
   font-size: 1.5rem;
   font-weight: 700;
-  color: var(--text-primary);
+  color: var(--text-main);
   position: relative;
 }
 
@@ -675,7 +694,7 @@ pre, code {
 
 .version-item {
   padding: var(--spacing-lg);
-  background: var(--secondary-bg);
+  background: var(--content-bg);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-lg);
   transition: all var(--transition-normal);
@@ -706,7 +725,7 @@ pre, code {
 
 .version-message {
   font-weight: 500;
-  color: var(--text-primary);
+  color: var(--text-main);
   margin-bottom: var(--spacing-sm);
 }
 
@@ -825,13 +844,13 @@ pre, code {
   .notes-list-panel {
     width: 280px;
   }
-  
   .note-header {
     padding: var(--spacing-lg);
   }
-  
   #noteTitle {
     font-size: 1.5rem;
+    margin-bottom: 0.3em;
+    padding-bottom: 0.1em;
   }
 }
 
@@ -916,7 +935,7 @@ pre, code {
     flex-direction: column;
     align-items: stretch;
     padding: 2.2em 2.2em 1.2em 2.2em;
-    background: var(--secondary-bg);
+    background: var(--content-bg);
     border-bottom: 1px solid var(--border-color);
     box-shadow: var(--shadow-sm);
     position: sticky;
@@ -925,33 +944,18 @@ pre, code {
   }
   .note-title-row {
     width: 100%;
-    margin-bottom: 0.7em;
+    margin-bottom: 0.1em;
     display: flex;
     justify-content: center;
     align-items: center;
   }
   #noteTitle {
-    width: 100%;
-    max-width: 900px;
-    margin: 0 auto 0.8em auto;
     font-size: 2.2em;
-    font-weight: 700;
-    color: #24292f;
-    background: none;
-    border: none;
-    border-bottom: 1px solid #eaecef;
-    border-radius: 0;
-    box-shadow: none;
-    padding: 0 0 0.3em 0;
-    outline: none;
-    text-align: left;
-    transition: none;
+    margin-bottom: 0.8em;
+    padding-bottom: 0.3em;
   }
   #noteTitle:focus {
-    outline: none;
-    border-bottom: 1px solid #8b5cf6;
-    background: none;
-    box-shadow: none;
+    border-bottom: 1.5px solid #8b5cf6;
   }
   .note-header-top {
     display: flex;
@@ -959,7 +963,7 @@ pre, code {
     align-items: center;
     justify-content: center;
     width: 100%;
-    gap: 1.2em;
+    gap: 1.5em;
   }
   .note-meta {
     flex: 0 0 auto;
@@ -1103,7 +1107,7 @@ pre, code {
     flex-direction: column;
     align-items: stretch;
     padding: 1.2em 0.8em 0.6em 0.8em;
-    background: var(--secondary-bg);
+    background: var(--content-bg);
     border-bottom: 1px solid var(--border-color);
     box-shadow: var(--shadow-sm);
     position: sticky;
@@ -1115,27 +1119,12 @@ pre, code {
     margin-bottom: 0.5em;
   }
   #noteTitle {
-    width: 100%;
-    max-width: 900px;
-    margin: 0 auto 0.8em auto;
-    font-size: 2.2em;
-    font-weight: 700;
-    color: #24292f;
-    background: none;
-    border: none;
-    border-bottom: 1px solid #eaecef;
-    border-radius: 0;
-    box-shadow: none;
-    padding: 0 0 0.3em 0;
-    outline: none;
-    text-align: left;
-    transition: none;
+    font-size: 1.4em;
+    margin-bottom: 0.5em;
+    padding-bottom: 0.1em;
   }
   #noteTitle:focus {
-    outline: none;
-    border-bottom: 1px solid var(--accent-color);
-    background: none;
-    box-shadow: none;
+    border-bottom: 1.5px solid var(--accent-color);
   }
   .note-header-top {
     display: flex;
@@ -1280,7 +1269,7 @@ pre, code {
   border-radius: var(--radius-lg);
   font-size: 1rem;
   background: var(--accent-light);
-  color: var(--text-primary);
+  color: var(--text-main);
   outline: none;
   transition: border-color 0.2s, box-shadow 0.2s;
 }
@@ -1356,6 +1345,14 @@ pre, code {
   top: 1.5rem;
   right: 1.5rem;
   z-index: 10000;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 1.0em;
+}
+.import-all-btn {
+  margin-top: 0;
+  margin-right: 0;
 }
 .cloud-sync-btn {
   width: 36px;
@@ -1426,7 +1423,7 @@ pre, code {
   border: 1.5px solid var(--border-color);
   border-radius: var(--radius-lg);
   background: var(--accent-light);
-  color: var(--text-primary);
+  color: var(--text-main);
   margin-top: 0.2em;
   margin-bottom: 0.5em;
   outline: none;
@@ -1522,5 +1519,258 @@ pre, code {
 
 body, #noteEditor, .markdown-body, input, button, textarea {
   font-family: var(--font-sans) !important;
+}
+
+.note-header.shrink .note-title-row {
+  height: 0 !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+}
+
+.note-title-row {
+  transition: all 0.25s cubic-bezier(.4,0,.2,1);
+}
+
+/* 侧边栏标签列表样式 */
+.tags-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5em 0.7em;
+  margin-bottom: var(--spacing-md);
+  padding: 0.2em 0 0.5em 0;
+}
+.tag-item {
+  display: inline-block;
+  background: var(--accent-light);
+  color: var(--accent-color);
+  border-radius: var(--radius-md);
+  padding: 0.18em 0.9em;
+  font-size: 0.98em;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.18s, color 0.18s;
+  user-select: none;
+  border: 1.2px solid transparent;
+}
+.tag-item:hover {
+  background: var(--accent-color);
+  color: var(--text-light);
+}
+.tag-item.selected {
+  background: var(--highlight-bg) !important;
+  color: var(--accent-hover) !important;
+}
+
+html, body {
+  font-size: var(--font-size-base);
+  line-height: var(--line-height-base);
+  color: var(--text-main);
+  background: var(--primary-bg);
+  letter-spacing: 0.01em;
+}
+h1, .main-title, #noteTitle {
+  font-size: var(--font-size-xl);
+  font-weight: 700;
+  line-height: var(--line-height-tight);
+  margin-bottom: 0.7em;
+  letter-spacing: 0.01em;
+}
+h2, .subtitle {
+  font-size: var(--font-size-lg);
+  font-weight: 600;
+  margin-bottom: 0.5em;
+  line-height: var(--line-height-tight);
+}
+h3 {
+  font-size: 1.12rem;
+  font-weight: 500;
+  margin-bottom: 0.4em;
+}
+p, ul, ol, blockquote, pre, code {
+  margin-top: 0;
+  margin-bottom: var(--spacing-paragraph);
+}
+p {
+  font-size: 1.05em;
+}
+ul, ol {
+  padding-left: 2em;
+  font-size: 1.01em;
+}
+li {
+  margin-bottom: 0.2em;
+}
+blockquote {
+  border-left: 3.5px solid #e0e0e0;
+  background: #f7f7f7;
+  color: #666;
+  padding: 0.7em 1.2em;
+  margin: 0 0 var(--spacing-paragraph) 0;
+  font-style: italic;
+  border-radius: 0.4em;
+}
+pre, code {
+  font-family: var(--font-mono);
+  background: #f5f6fa;
+  color: #2d3a4a;
+  border-radius: 0.3em;
+}
+pre {
+  padding: 1em 1.2em;
+  overflow-x: auto;
+  font-size: 0.98em;
+  margin-bottom: var(--spacing-paragraph);
+}
+code {
+  padding: 0.13em 0.38em;
+  font-size: 0.98em;
+  border-radius: 0.25em;
+}
+
+/* 历史版本diff高亮区域 */
+.diff-add {
+  background: var(--highlight-bg) !important;
+}
+.diff-remove {
+  background: #fbeaea !important;
+}
+
+.btn-export {
+  background: var(--accent-light);
+  color: var(--accent-color);
+  border: 1.2px solid var(--accent-light);
+  border-radius: var(--radius-md);
+  font-weight: 500;
+  font-size: 1em;
+  padding: 0.18em 0.9em;
+  margin-left: 0.5em;
+  cursor: pointer;
+  transition: background 0.18s, color 0.18s, border 0.18s;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4em;
+}
+.btn-export:hover {
+  background: var(--accent-color);
+  color: var(--text-light);
+  border-color: var(--accent-hover);
+}
+.btn-export i {
+  color: var(--icon-default);
+  transition: color 0.18s;
+}
+.btn-export:hover i {
+  color: var(--text-light);
+}
+
+.import-all-btn {
+  /* 复用云同步按钮样式 */
+  width: 36px;
+  height: 36px;
+  background: #e5e7eb;
+  color: #888;
+  border: none;
+  border-radius: 50%;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+  transition: background 0.2s, color 0.2s, box-shadow 0.2s;
+  padding: 0;
+  margin: 0;
+}
+.import-all-btn:hover {
+  background: var(--accent-color);
+  color: #fff;
+  box-shadow: 0 4px 16px rgba(139,92,246,0.10);
+}
+.import-all-btn i {
+  color: inherit;
+  font-size: 1.25rem;
+  transition: color 0.18s;
+}
+.import-all-btn:hover i {
+  color: #fff;
+}
+@media (max-width: 768px) {
+  .import-all-btn {
+    display: none !important;
+  }
+}
+
+.import-modal {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.18);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.import-modal.hidden {
+  display: none;
+}
+.import-modal-content {
+  background: #fff;
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-xl);
+  padding: 2.5em 2em 2em 2em;
+  min-width: 340px;
+  max-width: 90vw;
+  display: flex;
+  flex-direction: column;
+  gap: 1.2em;
+  position: relative;
+  align-items: center;
+}
+.import-modal-content h3 {
+  margin: 0 0 0.5em 0;
+  font-size: 1.3em;
+  font-weight: 700;
+  color: var(--accent-color);
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+}
+.import-options {
+  display: flex;
+  flex-direction: column;
+  gap: 1.1em;
+  width: 100%;
+  align-items: center;
+}
+.import-option-btn {
+  background: var(--accent-light);
+  color: var(--accent-color);
+  border: 1.2px solid var(--accent-light);
+  border-radius: var(--radius-md);
+  font-weight: 500;
+  font-size: 1.08em;
+  padding: 0.7em 2.2em;
+  cursor: pointer;
+  transition: background 0.18s, color 0.18s, border 0.18s;
+  display: flex;
+  align-items: center;
+  gap: 0.7em;
+  width: 100%;
+  justify-content: center;
+}
+.import-option-btn:hover {
+  background: var(--accent-color);
+  color: var(--text-light);
+  border-color: var(--accent-hover);
+}
+.import-option-btn i {
+  color: var(--icon-default);
+  font-size: 1.1em;
+  transition: color 0.18s;
+}
+.import-option-btn:hover i {
+  color: var(--text-light);
 }
 
