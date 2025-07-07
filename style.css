@@ -1,26 +1,26 @@
-/* 现代化WordPress风格笔记系统 - 重新设计 */
+  /* 现代化WordPress风格笔记系统 - 重新设计 */
 
 :root {
-  /* 主色调 - 温暖的米色系 */
-  --primary-bg: #faf9f7;
-  --secondary-bg: #ffffff;
-  --accent-color: #8b5cf6;
-  --accent-hover: #7c3aed;
-  --accent-light: #f3f4f6;
+  /* 主色调 - 书卷气淡雅风 */
+  --primary-bg: #f8f5ec;         /* 米白 */
+  --secondary-bg: #fcfcfa;       /* 更浅的米白 */
+  --accent-color: #a3a380;       /* 雅致的竹青 */
+  --accent-hover: #88896f;       /* 深一点的竹青 */
+  --accent-light: #f3f4ed;       /* 竹青浅色 */
   
   /* 文字颜色 */
-  --text-primary: #1f2937;
-  --text-secondary: #6b7280;
-  --text-muted: #9ca3af;
+  --text-primary: #3e3a39;       /* 墨色 */
+  --text-secondary: #7c7b6e;     /* 青灰 */
+  --text-muted: #b0b0a7;         /* 淡灰 */
   --text-light: #ffffff;
   
   /* 边框和阴影 */
-  --border-color: #e5e7eb;
-  --border-light: #f3f4f6;
-  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  --border-color: #e5e1d8;       /* 淡灰 */
+  --border-light: #f3f4ed;       /* 更淡的灰 */
+  --shadow-sm: 0 1px 2px 0 rgba(60, 60, 60, 0.03);
+  --shadow-md: 0 4px 6px -1px rgba(60, 60, 60, 0.06), 0 2px 4px -1px rgba(60, 60, 60, 0.03);
+  --shadow-lg: 0 10px 15px -3px rgba(60, 60, 60, 0.08), 0 4px 6px -2px rgba(60, 60, 60, 0.03);
+  --shadow-xl: 0 20px 25px -5px rgba(60, 60, 60, 0.10), 0 10px 10px -5px rgba(60, 60, 60, 0.04);
   
   /* 圆角 */
   --radius-sm: 0.375rem;
@@ -37,7 +37,7 @@
   --spacing-2xl: 3rem;
   
   /* 字体 */
-  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-sans: 'Inter', 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
   --font-mono: 'JetBrains Mono', 'Fira Code', Consolas, monospace;
   
   /* 过渡动画 */
@@ -84,12 +84,13 @@ pre, code {
 .notes-list-panel {
   width: 320px;
   background: linear-gradient(180deg, var(--secondary-bg) 0%, #fefefe 100%);
-  border-right: 1px solid var(--border-color);
+  border-right: 1.5px solid var(--border-color);
   padding: var(--spacing-xl);
   box-shadow: var(--shadow-lg);
   z-index: 10;
   position: relative;
   overflow-y: auto;
+  overflow-x: hidden;
   transition: all var(--transition-normal);
 }
 
@@ -100,7 +101,7 @@ pre, code {
   left: 0;
   right: 0;
   height: 4px;
-  background: linear-gradient(90deg, var(--accent-color), #a855f7, #ec4899);
+  background: linear-gradient(90deg, var(--accent-color), var(--accent-hover), var(--border-color));
   border-radius: 0 0 var(--radius-md) var(--radius-md);
 }
 
@@ -207,14 +208,14 @@ pre, code {
 
 #notesList li:hover {
   background: var(--accent-light);
-  color: var(--accent-color);
+  color: var(--accent-hover);
   transform: translateX(4px);
   border-color: var(--accent-color);
 }
 
 #notesList li.active {
   background: #fff;
-  color: var(--accent-color);
+  color: var(--accent-hover);
   border: 2px solid var(--accent-color);
   box-shadow: 0 1px 4px rgba(139,92,246,0.06);
   font-weight: 700;
@@ -222,8 +223,10 @@ pre, code {
 }
 
 #notesList li.active:hover {
-  background: var(--accent-color);
-  color: #fff;
+  background: var(--accent-light);
+  color: var(--accent-hover);
+  transform: translateX(4px);
+  border-color: var(--accent-color);
   box-shadow: 0 4px 16px rgba(139,92,246,0.10);
 }
 
@@ -252,11 +255,11 @@ pre, code {
 }
 
 .note-date {
-  color: inherit;
+  color: var(--text-secondary);
 }
 
 .note-version-count {
-  color: inherit;
+  color: var(--text-secondary);
   font-weight: 500;
 }
 
@@ -306,15 +309,28 @@ pre, code {
 }
 
 #noteTitle {
-  font-size: 2rem;
+  width: 100%;
+  max-width: 900px;
+  margin: 0 auto 0.8em auto;
+  font-size: 2.2em;
   font-weight: 700;
-  padding: var(--spacing-md) var(--spacing-lg);
-  border: 2px solid transparent;
-  border-radius: var(--radius-lg);
-  background: var(--accent-light);
-  color: var(--text-primary);
-  transition: all var(--transition-normal);
-  margin-bottom: var(--spacing-sm);
+  color: #24292f;
+  background: none;
+  border: none;
+  border-bottom: 1px solid #eaecef;
+  border-radius: 0;
+  box-shadow: none;
+  padding: 0 0 0.3em 0;
+  outline: none;
+  text-align: left;
+  transition: none;
+}
+
+#noteTitle:focus {
+  outline: none;
+  border-bottom: 1px solid var(--accent-color);
+  background: none;
+  box-shadow: none;
 }
 
 .title-actions {
@@ -328,13 +344,6 @@ pre, code {
   font-weight: 500;
 }
 
-#noteTitle:focus {
-  outline: none;
-  border-color: var(--accent-color);
-  background: var(--secondary-bg);
-  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
-}
-
 /* 操作按钮组 */
 .note-actions {
   display: flex;
@@ -342,16 +351,16 @@ pre, code {
 }
 
 .note-actions button {
-  background: #fff;
-  color: var(--accent-color);
-  border: 2px solid var(--accent-color);
+  background: var(--secondary-bg);
+  color: var(--border-color);
+  border: 1.5px solid var(--border-color);
   border-radius: var(--radius-xl);
   cursor: pointer;
   font-weight: 600;
   font-size: 1rem;
   padding: var(--spacing-sm) var(--spacing-xl);
   margin-left: var(--spacing-md);
-  box-shadow: 0 1px 4px rgba(139,92,246,0.06);
+  box-shadow: none;
   display: flex;
   align-items: center;
   gap: 0.5em;
@@ -361,10 +370,17 @@ pre, code {
   margin-left: 0;
 }
 .note-actions button:hover {
-  background: #f3f4f6;
+  background: var(--accent-light);
   color: var(--accent-hover);
-  box-shadow: 0 4px 16px rgba(139,92,246,0.15);
-  transform: translateY(-1px);
+  border: 1.5px solid var(--accent-hover);
+}
+
+.note-actions button i {
+  color: var(--border-color) !important;
+  transition: color 0.2s;
+}
+.note-actions button:hover i {
+  color: var(--accent-hover) !important;
 }
 
 /* 笔记内容区域 */
@@ -372,10 +388,11 @@ pre, code {
   flex: 1;
   display: flex;
   flex-direction: column;
+  align-items: flex-start;
 }
 
 #notePreview, #noteEditor {
-  padding: var(--spacing-2xl);
+  padding: var(--spacing-2xl) 0;
   overflow-y: auto;
   background: var(--secondary-bg);
   transition: all var(--transition-normal);
@@ -385,6 +402,13 @@ pre, code {
 }
 
 #noteEditor {
+  padding-left: 0;
+  padding-right: 0;
+  width: 100%;
+  max-width: none;
+  min-width: 0;
+  margin: 0;
+  box-sizing: border-box;
   border: none;
   resize: none;
   font-family: var(--font-sans);
@@ -392,6 +416,11 @@ pre, code {
   line-height: 1.8;
   color: var(--text-primary);
   background: var(--secondary-bg);
+}
+
+#noteEditor.editing {
+  padding-left: 2em;
+  padding-right: 2em;
 }
 
 #noteEditor:focus {
@@ -404,12 +433,11 @@ pre, code {
 
 /* Markdown 内容样式 */
 .markdown-body {
-  box-sizing: border-box;
-  min-width: 200px;
+  width: 100%;
   max-width: 900px;
   margin: 0 auto;
   padding: 32px 0;
-  color: #24292f;
+  color: var(--text-primary);
   background: transparent;
   font-family: var(--font-sans), 'Segoe UI', 'Helvetica Neue', Arial, 'Liberation Sans', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
   font-size: 1.05rem;
@@ -428,7 +456,7 @@ pre, code {
   margin-top: 2em;
   margin-bottom: 1em;
   border: none;
-  color: #1a1a1a;
+  color: var(--text-primary);
 }
 .markdown-body h1 { font-size: 2.2em; border-bottom: 1px solid #eaecef; padding-bottom: 0.3em; }
 .markdown-body h2 { font-size: 1.7em; border-bottom: 1px solid #eaecef; padding-bottom: 0.3em; }
@@ -438,7 +466,7 @@ pre, code {
 
 .markdown-body p {
   margin: 1em 0;
-  color: #24292f;
+  color: var(--text-primary);
 }
 
 .markdown-body ul,
@@ -477,7 +505,7 @@ pre, code {
   overflow: auto;
   font-size: 0.98em;
   line-height: 1.6;
-  color: #24292f;
+  color: var(--text-primary);
   margin: 1.5em 0;
 }
 
@@ -530,7 +558,7 @@ pre, code {
 
 .markdown-body strong {
   font-weight: 600;
-  color: #24292f;
+  color: var(--text-primary);
 }
 
 .markdown-body del {
@@ -609,7 +637,7 @@ pre, code {
     width: 40px;
     height: 40px;
   background: var(--accent-light);
-  border: 2px solid var(--border-color);
+  border: 1.5px solid var(--accent-color);
   border-radius: var(--radius-lg);
     cursor: pointer;
   transition: all var(--transition-normal);
@@ -617,7 +645,7 @@ pre, code {
   align-items: center;
   justify-content: center;
   font-size: 1.25rem;
-  color: var(--text-secondary);
+  color: var(--accent-hover);
 }
 
 .btn-close:hover {
@@ -691,7 +719,7 @@ pre, code {
 }
 
 .version-date {
-  color: var(--text-muted);
+  color: var(--text-secondary);
 }
 
 .version-actions {
@@ -719,7 +747,8 @@ pre, code {
   transform: scaleY(0.95);
   transform-origin: top;
   max-height: 400px;
-  overflow: hidden;
+  overflow-y: auto;
+  overflow-x: hidden;
   padding: var(--spacing-md);
   margin-top: var(--spacing-sm);
   background: var(--accent-light);
@@ -819,7 +848,8 @@ pre, code {
     border-right: 1.5px solid #f3e8ff;
     box-shadow: 2px 0 8px rgba(124,58,237,0.03);
     transition: width 0.28s cubic-bezier(.4,1.4,.6,1);
-    overflow: hidden;
+    overflow-y: auto;
+    overflow-x: hidden;
   }
   .notes-list-panel.drawer-collapsed {
     width: 0 !important;
@@ -841,19 +871,18 @@ pre, code {
     width: 40px;
     height: 40px;
     background: transparent;
+    color: var(--accent-hover);
     border: none;
-    outline: none;
-    border-radius: 50%;
     box-shadow: none;
     padding: 0;
-    transition: background 0.2s;
+    transition: color 0.2s;
   }
   #pc-drawer-toggle:focus,
   #pc-drawer-toggle:active {
     outline: none !important;
     border: none !important;
     box-shadow: none !important;
-    background: rgba(237,233,254,0.8) !important;
+    background: transparent;
   }
   #pc-drawer-toggle svg {
     width: 28px;
@@ -902,16 +931,27 @@ pre, code {
     align-items: center;
   }
   #noteTitle {
-    width: 900px;
+    width: 100%;
     max-width: 900px;
-    font-size: 2.1em;
+    margin: 0 auto 0.8em auto;
+    font-size: 2.2em;
     font-weight: 700;
-    padding: 0.7em 0.8em;
-    border-radius: var(--radius-lg);
-    border: 1.5px solid #ede9fe;
-    background: #f8f8ff;
-    margin-bottom: 0;
-    text-align: center;
+    color: #24292f;
+    background: none;
+    border: none;
+    border-bottom: 1px solid #eaecef;
+    border-radius: 0;
+    box-shadow: none;
+    padding: 0 0 0.3em 0;
+    outline: none;
+    text-align: left;
+    transition: none;
+  }
+  #noteTitle:focus {
+    outline: none;
+    border-bottom: 1px solid #8b5cf6;
+    background: none;
+    box-shadow: none;
   }
   .note-header-top {
     display: flex;
@@ -956,6 +996,31 @@ pre, code {
   #cloudSyncBtnMobile {
     display: none !important;
   }
+  .pc-drawer-hint {
+    position: fixed;
+    top: 50%;
+    left: 0;
+    transform: translateY(-50%);
+    width: 18px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 20000;
+    background: transparent;
+    pointer-events: auto;
+    opacity: 0.7;
+    transition: opacity 0.2s, background 0.2s;
+    cursor: pointer;
+    border-radius: 9px;
+  }
+  .pc-drawer-hint:active {
+    background: var(--accent-light);
+    opacity: 1;
+  }
+  .pc-drawer-hint svg {
+    display: block;
+  }
 }
 @media (max-width: 768px) {
   .notes-list-panel {
@@ -973,6 +1038,8 @@ pre, code {
     transform: translateX(0);
     transition: transform 0.28s cubic-bezier(.4,1.4,.6,1);
     display: block;
+    overflow-y: auto;
+    overflow-x: hidden;
   }
   .notes-list-panel.drawer-collapsed {
     transform: translateX(-100%) !important;
@@ -1049,14 +1116,26 @@ pre, code {
   }
   #noteTitle {
     width: 100%;
-    font-size: 1.4em;
+    max-width: 900px;
+    margin: 0 auto 0.8em auto;
+    font-size: 2.2em;
     font-weight: 700;
-    padding: 0.7em 0.8em;
-    border-radius: var(--radius-lg);
-    border: 1.5px solid #ede9fe;
-    background: #f8f8ff;
-    margin-bottom: 0;
+    color: #24292f;
+    background: none;
+    border: none;
+    border-bottom: 1px solid #eaecef;
+    border-radius: 0;
+    box-shadow: none;
+    padding: 0 0 0.3em 0;
+    outline: none;
     text-align: left;
+    transition: none;
+  }
+  #noteTitle:focus {
+    outline: none;
+    border-bottom: 1px solid var(--accent-color);
+    background: none;
+    box-shadow: none;
   }
   .note-header-top {
     display: flex;
@@ -1081,26 +1160,66 @@ pre, code {
     justify-content: flex-end;
     gap: 0.2em;
   }
+  .content-area {
+    padding-left: 1em;
+    padding-right: 1em;
+  }
+  .markdown-body, #notePreview, #noteEditor {
+    padding-left: 0.5em;
+    padding-right: 0.5em;
+  }
+  .mobile-drawer-hint {
+    position: fixed;
+    top: 50%;
+    left: 0;
+    transform: translateY(-50%);
+    width: 18px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 20000;
+    background: transparent;
+    pointer-events: auto;
+    opacity: 0.7;
+    transition: opacity 0.2s, background 0.2s;
+    cursor: pointer;
+    border-radius: 9px;
+  }
+  .mobile-drawer-hint:active {
+    background: var(--accent-light);
+    opacity: 1;
+  }
+  .mobile-drawer-hint svg {
+    display: block;
+  }
+  .pc-drawer-hint {
+    display: none !important;
+  }
+}
+@media (min-width: 769px) {
+  .mobile-drawer-hint {
+    display: none !important;
+  }
 }
 
-/* 滚动条美化 */
-::-webkit-scrollbar {
-  width: 8px;
+/* 默认和悬停都完全透明，只有滚动时才略显色 */
+.notes-list-panel::-webkit-scrollbar-thumb {
+  background: transparent;
+  transition: background 0.2s;
 }
-
-::-webkit-scrollbar-track {
-  background: var(--accent-light);
-  border-radius: var(--radius-sm);
+.notes-list-panel.scrolling::-webkit-scrollbar-thumb {
+  background: rgba(0,0,0,0.08);
 }
-
-::-webkit-scrollbar-thumb {
-  background: var(--accent-color);
-  border-radius: var(--radius-sm);
-  transition: background var(--transition-normal);
+.notes-list-panel::-webkit-scrollbar-track {
+  background: transparent;
 }
-
-::-webkit-scrollbar-thumb:hover {
-  background: var(--accent-hover);
+.notes-list-panel {
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+}
+.notes-list-panel.scrolling {
+  scrollbar-color: rgba(0,0,0,0.08) transparent;
 }
 
 /* 加载动画 */
@@ -1387,31 +1506,21 @@ pre, code {
   display: flex !important;
 }
 
-#pc-drawer-toggle {
-  position: fixed !important;
-  left: 0 !important;
-  top: 12px !important;
-  z-index: 99999 !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  width: 40px !important;
-  height: 40px !important;
-  background: transparent !important;
-  border: none !important;
-  outline: none !important;
-  border-radius: 50% !important;
-  box-shadow: none !important;
-  padding: 0 !important;
-  transition: background 0.2s !important;
+.mobile-drawer-hint.sidebar-open svg {
+  transform: scaleX(-1);
 }
-#pc-drawer-toggle:focus, #pc-drawer-toggle:active {
-  outline: none;
-  background: rgba(237,233,254,0.8);
+
+.pc-drawer-hint.sidebar-open svg {
+  transform: scaleX(-1);
 }
-#pc-drawer-toggle svg {
-  width: 28px !important;
-  height: 28px !important;
-  display: block !important;
+
+@media (max-width: 768px) {
+  .pc-drawer-hint {
+    display: none !important;
+  }
+}
+
+body, #noteEditor, .markdown-body, input, button, textarea {
+  font-family: var(--font-sans) !important;
 }
 
