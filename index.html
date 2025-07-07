@@ -49,9 +49,10 @@
         <div class="notes-list-panel drawer-collapsed animate__animated animate__fadeInLeft">
             <div class="sidebar">
                 <div class="sidebar-header">
-                    <span>笔记列表</span>
+                    <h2><i class="fas fa-book"></i> 笔记列表</h2>
+                    <p class="sidebar-subtitle">全部笔记</p>
                 </div>
-                <p class="sidebar-subtitle">管理你的知识库</p>
+                <div id="tagsList" class="tags-list"></div>
                 <input type="text" id="searchInput" class="search-input" placeholder="搜索笔记..." autocomplete="off" />
             </div>
             
@@ -80,11 +81,11 @@
                         <button id="editBtn" class="btn-edit">
                             <i class="fas fa-edit"></i><span class="btn-text"> 编辑笔记</span>
                         </button>
-                        <button id="saveVersionBtn" class="btn-save">
-                            <i class="fas fa-save"></i><span class="btn-text"> 保存版本</span>
-                        </button>
                         <button id="showVersionsBtn" class="btn-history">
                             <i class="fas fa-history"></i><span class="btn-text"> 查看历史</span>
+                        </button>
+                        <button id="exportNoteBtn" class="btn-export">
+                            <i class="fas fa-file-export"></i><span class="btn-text"> 导出笔记</span>
                         </button>
                         <button id="cloudSyncBtnMobile" class="btn-cloud">
                             <i class="fas fa-cloud"></i>
@@ -95,6 +96,7 @@
             
             <!-- 云同步按钮和弹窗 -->
             <div class="cloud-sync-bar">
+                <button id="importAllBtn" class="import-all-btn" title="导入全部笔记"><i class="fas fa-file-import"></i></button>
                 <button id="cloudSyncBtn" class="cloud-sync-btn" title="云同步"><i class="fas fa-cloud"></i></button>
             </div>
             <div id="cloudSyncModal" class="cloud-sync-modal hidden">
@@ -151,6 +153,19 @@
         <div class="versions-container">
             <ul id="versionsList"></ul>
         </div>
+    </div>
+    
+    <!-- 导入操作弹窗 -->
+    <div id="importModal" class="import-modal hidden">
+      <div class="import-modal-content">
+        <h3><i class="fas fa-file-import"></i> 导入笔记</h3>
+        <div class="import-options">
+          <button id="importMdBtn" class="import-option-btn"><i class="fas fa-file-alt"></i> 导入单个 Markdown 文件</button>
+          <button id="importFolderBtn" class="import-option-btn"><i class="fas fa-folder-open"></i> 导入 Markdown 文件夹</button>
+          <button id="importZipBtn" class="import-option-btn"><i class="fas fa-file-archive"></i> 导入 zip 包</button>
+        </div>
+        <button id="importModalCloseBtn" class="btn-close"><i class="fas fa-times"></i></button>
+      </div>
     </div>
     
     <!-- 加载脚本 -->
