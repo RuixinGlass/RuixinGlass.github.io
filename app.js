@@ -52,6 +52,12 @@ const importFolderBtn = document.getElementById('importFolderBtn');
 const importZipBtn = document.getElementById('importZipBtn');
 const importModalCloseBtn = document.getElementById('importModalCloseBtn');
 
+// Codemirror 5 集成
+let cmEditor = null;
+
+// 记录滚动比例
+let lastMainPanelScrollRatio = 0;
+
 // ===== 统一初始化逻辑，合并侧栏初始状态设置 =====
 window.addEventListener('DOMContentLoaded', function() {
     // 只在PC端移除drawer-collapsed，移动端不处理
@@ -621,26 +627,44 @@ function setupEventListeners() {
         noteTitleEl.focus();
     });
     
-    // 编辑/预览切换
+    // 编辑/预览切换（彻底杜绝页面跳动，强制恢复scrollTop）
     editBtn.addEventListener('click', () => {
-        if (noteEditorEl.style.display === 'none') {
-            // 切换到编辑模式
-            noteEditorEl.style.display = 'block';
+        const mainPanel = document.querySelector('.note-main-panel');
+        const scrollTop = mainPanel.scrollTop;
+        const isEditing = cmEditor && cmEditor.getWrapperElement().style.display !== 'none';
+        const contentArea = document.querySelector('.content-area');
+        if (!isEditing) {
+            noteEditorEl.style.display = 'none';
             notePreviewEl.style.display = 'none';
             noteEditorEl.classList.add('editing');
             editBtn.innerHTML = '<i class="fas fa-eye"></i><span class="btn-text"> 预览笔记</span>';
+            if (!cmEditor) {
+                cmEditor = CodeMirror.fromTextArea(noteEditorEl, {
+                    mode: 'markdown',
+                    lineNumbers: false,
+                    lineWrapping: true,
+                    theme: 'default'
+                });
+                cmEditor.setSize('100%');
+            }
+            cmEditor.getWrapperElement().style.display = 'block';
+            if(contentArea) contentArea.classList.add('editing-mode');
         } else {
-            // 切换回预览模式
-            noteEditorEl.style.display = 'none';
+            noteEditorEl.value = cmEditor.getValue();
+            cmEditor.getWrapperElement().style.display = 'none';
             notePreviewEl.style.display = 'block';
             noteEditorEl.classList.remove('editing');
             editBtn.innerHTML = '<i class="fas fa-edit"></i><span class="btn-text"> 编辑笔记</span>';
-            // 如果内容有变化，自动保存
-            if (notesData.currentNoteId && 
+            if (notesData.currentNoteId &&
                 notesData.notes[notesData.currentNoteId].content !== noteEditorEl.value) {
                 saveVersion();
             }
+            if(contentArea) contentArea.classList.remove('editing-mode');
         }
+        // 强制恢复主页面滚动条位置
+        setTimeout(() => {
+            mainPanel.scrollTop = scrollTop;
+        }, 0);
     });
     
     // 实时字数统计
