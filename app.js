@@ -49,6 +49,9 @@ let selectedTags = []; // 当前选中的标签
 let lastMainPanelScrollRatio = 0; // 记录滚动比例
 let searchKeyword = '';
 
+// ========== 工具函数 ==========
+function isMobile() { return window.innerWidth <= 768; }
+
 // ========== 初始化与主流程 ==========
 window.addEventListener('DOMContentLoaded', function() {
     // 只在PC端移除drawer-collapsed，移动端不处理
@@ -93,7 +96,6 @@ window.addEventListener('DOMContentLoaded', function() {
     let startY = 0;
     let isTouching = false;
     const drawerCollapsedClass = 'drawer-collapsed';
-    function isMobile() { return window.innerWidth <= 768; }
     document.addEventListener('touchstart', function(e) {
         if (!isMobile()) return;
         if (e.touches.length !== 1) return;
@@ -634,13 +636,43 @@ function setupEventListeners() {
             noteEditorEl.classList.add('editing');
             editBtn.innerHTML = '<i class="fas fa-eye"></i><span class="btn-text"> 预览笔记</span>';
             if (!cmEditor) {
-                cmEditor = CodeMirror.fromTextArea(noteEditorEl, {
+                // 统一架构+移动端降级配置
+                const cmConfig = {
                     mode: 'markdown',
                     lineNumbers: false,
                     lineWrapping: true,
-                    theme: 'default'
-                });
+                    theme: 'default',
+                    viewportMargin: isMobile() ? Infinity : 10,
+                    autofocus: true,
+                    dragDrop: false,
+                    readOnly: false,
+                    tabIndex: 0
+                };
+                if (isMobile()) {
+                    cmConfig.inputStyle = 'contenteditable';
+                    cmConfig.cursorScrollMargin = 60;
+                }
+                cmEditor = CodeMirror.fromTextArea(noteEditorEl, cmConfig);
                 cmEditor.setSize('100%');
+                // 移动端同步机制
+                if (isMobile()) {
+                    const syncToTextarea = () => {
+                        noteEditorEl.value = cmEditor.getValue();
+                    };
+                    cmEditor.on('change', syncToTextarea);
+                    cmEditor.on('blur', syncToTextarea);
+                    cmEditor.on('scroll', syncToTextarea);
+                    cmEditor.on('touchend', syncToTextarea);
+                    // 光标体验优化
+                    const ensureCursorVisible = () => {
+                        cmEditor.refresh();
+                        cmEditor.scrollIntoView(cmEditor.getCursor());
+                    };
+                    cmEditor.on('focus', ensureCursorVisible);
+                    cmEditor.on('inputRead', ensureCursorVisible);
+                    cmEditor.on('touchend', ensureCursorVisible);
+                    window.addEventListener('resize', ensureCursorVisible);
+                }
             }
             // 始终以当前textarea内容为准
             cmEditor.setValue(noteEditorEl.value);
