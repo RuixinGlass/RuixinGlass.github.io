@@ -66,19 +66,20 @@
   box-sizing: border-box;
 }
 
-body {
+body, .app-container {
   font-family: var(--font-sans);
   font-weight: 400;
   line-height: 1.7;
   color: var(--text-main);
   margin: 0;
   padding: 0;
-  background: var(--primary-bg);
+  background: #fcfcfa;
   min-height: 100vh;
   transition: all var(--transition-normal);
   font-size: var(--font-size-base);
   line-height: var(--line-height-base);
   letter-spacing: 0.01em;
+  padding-top: env(safe-area-inset-top, 0px);
 }
 
 /* 代码样式 */
