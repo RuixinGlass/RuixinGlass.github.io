@@ -332,14 +332,14 @@ function renderNotesList() {
 function switchNote(noteId) {
     notesData.currentNoteId = noteId;
     const note = notesData.notes[noteId];
-    noteTitleEl.value = note.title || '';
-    noteEditorEl.value = note.content || '';
-    // 修复 Codemirror 编辑器内容滞后问题：切换笔记时销毁 cmEditor 实例
+    // --- 修复2：先销毁 Codemirror，再设置 textarea value，避免内容继承 ---
     if (cmEditor) {
         cmEditor.toTextArea(); // 恢复 textarea
         cmEditor.getWrapperElement().remove(); // 移除 Codemirror DOM
         cmEditor = null;
     }
+    noteTitleEl.value = note.title || '';
+    noteEditorEl.value = note.content || '';
     noteEditorEl.style.display = 'none';
     notePreviewEl.style.display = 'block';
     noteEditorEl.classList.remove('editing');
@@ -355,11 +355,11 @@ function switchNote(noteId) {
     if (activeLi) activeLi.classList.remove('active');
     const newActiveLi = notesListEl.querySelector(`li[data-note-id="${noteId}"]`);
     if (newActiveLi) newActiveLi.classList.add('active');
-    // --- 修复2：切换笔记时重置主内容区滚动条到顶部 ---
+    // --- 修复2补充：切换笔记时移除编辑模式类，保证预览背景色 ---
     const mainPanel = document.querySelector('.note-main-panel');
     if (mainPanel) mainPanel.scrollTop = 0;
-    // 如内容区有独立滚动条，也可同步重置
     const contentArea = document.querySelector('.content-area');
+    if (contentArea) contentArea.classList.remove('editing-mode');
     if (contentArea) contentArea.scrollTop = 0;
 }
 
