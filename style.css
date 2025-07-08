@@ -298,8 +298,7 @@ pre, code {
 /* 笔记头部 */
 .note-header {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
+  flex-direction: column;
   padding: var(--spacing-xl) var(--spacing-2xl);
   background: var(--content-bg);
   border-bottom: 1px solid var(--border-color);
@@ -309,6 +308,10 @@ pre, code {
   z-index: 10;
   transition: box-shadow 0.2s;
   padding-top: calc(env(safe-area-inset-top, 0px) + 1.2em);
+  margin-top: 0;
+  margin-bottom: 0;
+  padding-top: 0;
+  padding-bottom: 0;
 }
 
 .note-header::before {
@@ -345,8 +348,8 @@ pre, code {
   outline: none;
   text-align: left;
   transition: none;
-  margin-bottom: 0 !important;
-  padding-bottom: 0 !important;
+  margin-bottom: 0;
+  padding-bottom: 0;
 }
 #noteTitle:focus {
   outline: none;
@@ -1542,8 +1545,20 @@ body, #noteEditor, .markdown-body, input, button, textarea {
   overflow: hidden !important;
 }
 
+/* 标题行独立上边距 */
 .note-title-row {
-  transition: all 0.25s cubic-bezier(.4,0,.2,1);
+  margin-top: 0.2em;
+  margin-bottom: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+/* 字数统计行独立上边距 */
+.note-header-top {
+  margin-top: 0.1em;
+  margin-bottom: 0;
+  padding-top: 0;
+  padding-bottom: 0;
 }
 
 /* 侧边栏标签列表样式 */
@@ -1842,13 +1857,23 @@ code {
 }
 
 .note-header-top {
-  margin-top: 1.2em;
-  padding-top: 0.8em;
+  margin-top: 0.1em;
+  padding-top: 0;
 }
 
 .note-header.shrink .note-header-top {
-  margin-top: 0 !important;
-  padding-top: 0 !important;
+  margin-top: 0.1em;
+}
+
+.note-header,
+.note-title-row,
+#noteTitle,
+.note-meta,
+.note-actions {
+  margin-top: 0.2em;
+  margin-bottom: 0;
+  padding-top: 0;
+  padding-bottom: 0;
 }
 
 
