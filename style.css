@@ -345,6 +345,8 @@ pre, code {
   outline: none;
   text-align: left;
   transition: none;
+  margin-bottom: 0 !important;
+  padding-bottom: 0 !important;
 }
 #noteTitle:focus {
   outline: none;
@@ -961,6 +963,8 @@ pre, code {
     justify-content: center;
     width: 100%;
     gap: 1.5em;
+    margin-top: 1.2em;
+    padding-top: 0.8em;
   }
   .note-meta {
     flex: 0 0 auto;
@@ -1835,6 +1839,16 @@ code {
     background: #f8f8f5 !important;
     transition: background 0.2s;
   }
+}
+
+.note-header-top {
+  margin-top: 1.2em;
+  padding-top: 0.8em;
+}
+
+.note-header.shrink .note-header-top {
+  margin-top: 0 !important;
+  padding-top: 0 !important;
 }
 
 
