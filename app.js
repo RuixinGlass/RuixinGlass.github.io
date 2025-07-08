@@ -1,10 +1,15 @@
+// =====================
+// 严谨的版本控制笔记系统 - 主逻辑入口
+// =====================
+
+// ========== 数据结构 ==========
 // 笔记数据存储结构
 const notesData = {
     currentNoteId: null,
     notes: {}
 };
 
-// DOM元素
+// ========== DOM 元素获取 ==========
 const notesListEl = document.getElementById('notesList');
 const addNoteBtn = document.getElementById('addNoteBtn');
 const noteTitleEl = document.getElementById('noteTitle');
@@ -17,48 +22,34 @@ const versionsListEl = document.getElementById('versionsList');
 const closeVersionsBtn = document.getElementById('closeVersionsBtn');
 const wordCountEl = document.getElementById('wordCount');
 const searchInputEl = document.getElementById('searchInput');
-
-// 云同步弹窗逻辑
+// 云同步相关
 const cloudSyncBtn = document.getElementById('cloudSyncBtn');
 const cloudSyncModal = document.getElementById('cloudSyncModal');
 const cloudSyncCloseBtn = document.getElementById('cloudSyncCloseBtn');
-
-// 云同步上传到Gist
 const cloudSyncPushBtn = document.getElementById('cloudSyncPushBtn');
 const cloudTokenInput = document.getElementById('cloudTokenInput');
 const cloudGistIdInput = document.getElementById('cloudGistIdInput');
 const cloudSyncStatus = document.getElementById('cloudSyncStatus');
-
-// 云同步拉取Gist
 const cloudSyncPullBtn = document.getElementById('cloudSyncPullBtn');
-
-// 移动端更多按钮弹出菜单逻辑
+// 移动端菜单
 const mobileMenuBtn = document.getElementById('mobile-menu-btn');
 const mobileMenuDropdown = document.getElementById('mobile-menu-dropdown');
-
-// 当前选中的标签（支持多选）
-let selectedTags = [];
-
-// 单篇笔记导出功能
+// 导出/导入
 const exportNoteBtn = document.getElementById('exportNoteBtn');
-
-// 全部导入功能
 const importAllBtn = document.getElementById('importAllBtn');
-
-// 导入弹窗交互
 const importModal = document.getElementById('importModal');
 const importMdBtn = document.getElementById('importMdBtn');
 const importFolderBtn = document.getElementById('importFolderBtn');
 const importZipBtn = document.getElementById('importZipBtn');
 const importModalCloseBtn = document.getElementById('importModalCloseBtn');
 
-// Codemirror 5 集成
-let cmEditor = null;
+// ========== 编辑器与标签状态 ==========
+let cmEditor = null; // Codemirror 5 实例
+let selectedTags = []; // 当前选中的标签
+let lastMainPanelScrollRatio = 0; // 记录滚动比例
+let searchKeyword = '';
 
-// 记录滚动比例
-let lastMainPanelScrollRatio = 0;
-
-// ===== 统一初始化逻辑，合并侧栏初始状态设置 =====
+// ========== 初始化与主流程 ==========
 window.addEventListener('DOMContentLoaded', function() {
     // 只在PC端移除drawer-collapsed，移动端不处理
     const sidebar = document.querySelector('.notes-list-panel');
@@ -89,7 +80,7 @@ window.addEventListener('DOMContentLoaded', function() {
     }
 
     // 3. 云同步移动端按钮
-    var cloudSyncBtnMobile = document.getElementById('cloudSyncBtnMobile');
+    const cloudSyncBtnMobile = document.getElementById('cloudSyncBtnMobile');
     if (cloudSyncBtnMobile && cloudSyncBtn) {
         cloudSyncBtnMobile.addEventListener('click', function(e) {
             e.preventDefault();
@@ -202,9 +193,7 @@ window.addEventListener('DOMContentLoaded', function() {
     });
 });
 
-let searchKeyword = '';
-
-// 初始化
+// ========== 初始化入口 ==========
 function init() {
     // 配置Markdown解析器
     marked.setOptions({
@@ -237,7 +226,7 @@ function init() {
     updateWordCount();
 }
 
-// 从本地存储加载数据
+// ========== 本地存储 ==========
 function loadFromLocalStorage() {
     const savedData = localStorage.getItem('notesData');
     if (savedData) {
@@ -252,12 +241,11 @@ function loadFromLocalStorage() {
     }
 }
 
-// 保存数据到本地存储
 function saveToLocalStorage() {
     localStorage.setItem('notesData', JSON.stringify(notesData));
 }
 
-// 渲染笔记列表
+// ========== 笔记列表与内容渲染 ==========
 function renderNotesList() {
     notesListEl.innerHTML = '';
     // 标签筛选
@@ -341,37 +329,40 @@ function renderNotesList() {
     renderTagsList();
 }
 
-// 切换笔记
 function switchNote(noteId) {
     notesData.currentNoteId = noteId;
     const note = notesData.notes[noteId];
-    
     noteTitleEl.value = note.title || '';
     noteEditorEl.value = note.content || '';
-    
-    // 渲染Markdown预览
-    renderMarkdown(note.content || '');
-    
-    // 确保处于预览模式
+    // 修复 Codemirror 编辑器内容滞后问题：切换笔记时销毁 cmEditor 实例
+    if (cmEditor) {
+        cmEditor.toTextArea(); // 恢复 textarea
+        cmEditor.getWrapperElement().remove(); // 移除 Codemirror DOM
+        cmEditor = null;
+    }
     noteEditorEl.style.display = 'none';
     notePreviewEl.style.display = 'block';
+    noteEditorEl.classList.remove('editing');
     editBtn.innerHTML = '<i class="fas fa-edit"></i><span class="btn-text"> 编辑笔记</span>';
-    
-    // 更新字数统计
+    renderMarkdown(note.content || '');
     updateWordCount();
-    
-    // 重新渲染笔记列表以更新活动状态
-    renderNotesList();
-    
-    // 如果历史版本面板是打开的，自动刷新为当前笔记的历史
     if (versionsPanelEl.classList.contains('active')) {
         showVersions();
     }
-    
     saveToLocalStorage();
+    // --- 修复1：同步侧边栏 active 状态 ---
+    const activeLi = notesListEl.querySelector('li.active');
+    if (activeLi) activeLi.classList.remove('active');
+    const newActiveLi = notesListEl.querySelector(`li[data-note-id="${noteId}"]`);
+    if (newActiveLi) newActiveLi.classList.add('active');
+    // --- 修复2：切换笔记时重置主内容区滚动条到顶部 ---
+    const mainPanel = document.querySelector('.note-main-panel');
+    if (mainPanel) mainPanel.scrollTop = 0;
+    // 如内容区有独立滚动条，也可同步重置
+    const contentArea = document.querySelector('.content-area');
+    if (contentArea) contentArea.scrollTop = 0;
 }
 
-// 渲染Markdown内容
 function renderMarkdown(content) {
     // 检查并处理 front matter
     content = content.replace(
@@ -385,7 +376,7 @@ function renderMarkdown(content) {
     notePreviewEl.innerHTML = html;
 }
 
-// 生成版本哈希
+// ========== 版本控制与历史 ==========
 function generateVersionHash(content) {
     let hash = 0;
     for (let i = 0; i < content.length; i++) {
@@ -395,7 +386,6 @@ function generateVersionHash(content) {
     return 'v' + Math.abs(hash).toString(16).substring(0, 6);
 }
 
-// 比较版本差异
 function diffVersions(oldContent, newContent) {
     const oldLines = oldContent.split('\n');
     const newLines = newContent.split('\n');
@@ -419,7 +409,6 @@ function diffVersions(oldContent, newContent) {
     return diff;
 }
 
-// 显示历史版本
 function showVersions() {
     if (!notesData.currentNoteId) return;
 
@@ -492,7 +481,6 @@ function showVersions() {
     versionsPanelEl.classList.add('active');
 }
 
-// 完全重写showVersionDiff函数（支持切换显示/隐藏）
 function showVersionDiff(diffData, targetElement) {
     const versionItem = targetElement.closest('.version-item');
     if (!versionItem) return;
@@ -537,7 +525,6 @@ function showVersionDiff(diffData, targetElement) {
     });
 }
 
-// 恢复历史版本
 function restoreVersion(versionIndex) {
     if (!notesData.currentNoteId) return;
     
@@ -557,7 +544,7 @@ function restoreVersion(versionIndex) {
     showToast('版本已恢复');
 }
 
-// 字数统计功能
+// ========== 编辑与字数统计 ==========
 function updateWordCount() {
     const content = noteEditorEl.value || '';
     // 统计去除所有空白（空格、换行、Tab）后的字符数
@@ -565,7 +552,6 @@ function updateWordCount() {
     wordCountEl.textContent = `${wordCount} 字`;
 }
 
-// 显示Toast通知
 function showToast(message) {
     const toast = document.createElement('div');
     toast.className = 'toast';
@@ -578,7 +564,7 @@ function showToast(message) {
     }, 3000);
 }
 
-// 设置事件监听器
+// ========== 事件监听器归类 ==========
 function setupEventListeners() {
     // 更新事件监听器（约380行）
     versionsListEl.addEventListener('click', (e) => {
@@ -617,18 +603,21 @@ function setupEventListeners() {
             versions: []
         };
         notesData.notes[noteId] = newNote;
-        // 立即切换并保存
+        // 立即切换并保存（switchNote会同步所有内容并强制退出编辑模式）
         switchNote(noteId);
         saveToLocalStorage();
         renderNotesList();
-        // 让新笔记处于编辑状态
-        noteEditorEl.style.display = 'block';
-        notePreviewEl.style.display = 'none';
-        editBtn.innerHTML = '<i class="fas fa-eye"></i><span class="btn-text"> 预览笔记</span>';
+        // 自动进入完整编辑模式
+        if (editBtn) editBtn.click();
         noteTitleEl.focus();
+        // 移动端新建笔记后自动收回侧栏
+        const sidebar = document.querySelector('.notes-list-panel');
+        if (window.innerWidth <= 768 && sidebar && !sidebar.classList.contains('drawer-collapsed')) {
+            sidebar.classList.add('drawer-collapsed');
+        }
     });
     
-    // 编辑/预览切换（彻底杜绝页面跳动，强制恢复scrollTop）
+    // 编辑/预览切换
     editBtn.addEventListener('click', () => {
         const mainPanel = document.querySelector('.note-main-panel');
         const scrollTop = mainPanel.scrollTop;
@@ -648,9 +637,12 @@ function setupEventListeners() {
                 });
                 cmEditor.setSize('100%');
             }
+            // 始终以当前textarea内容为准
+            cmEditor.setValue(noteEditorEl.value);
             cmEditor.getWrapperElement().style.display = 'block';
             if(contentArea) contentArea.classList.add('editing-mode');
         } else {
+            // 始终以当前cmEditor内容为准
             noteEditorEl.value = cmEditor.getValue();
             cmEditor.getWrapperElement().style.display = 'none';
             notePreviewEl.style.display = 'block';
@@ -891,9 +883,10 @@ function setupEventListeners() {
     }
 }
 
-// 启动应用
+// ========== 启动应用 ==========
 init();
 
+// ========== 云同步相关 ==========
 async function uploadToGist(token, gistId, data) {
     const filename = 'notes-data.json';
     const body = {
@@ -938,7 +931,7 @@ async function fetchFromGist(token, gistId) {
     return JSON.parse(file.content);
 }
 
-// 解析 front matter，返回 {tags: [], ...}
+// ========== 标签与 front matter 工具 ==========
 function parseFrontMatter(content) {
     const fmMatch = content.match(/^---([\s\S]*?)---/);
     if (!fmMatch) return {};
@@ -965,7 +958,6 @@ function parseFrontMatter(content) {
     return meta;
 }
 
-// 获取所有标签（去重，按出现频率排序）
 function getAllTags() {
     const tagCount = {};
     for (const noteId in notesData.notes) {
@@ -982,7 +974,6 @@ function getAllTags() {
     return Object.keys(tagCount).sort((a, b) => tagCount[b] - tagCount[a]);
 }
 
-// 渲染标签列表到侧边栏
 function renderTagsList() {
     const tagsListEl = document.getElementById('tagsList');
     if (!tagsListEl) return;
@@ -1011,7 +1002,7 @@ function renderTagsList() {
     });
 }
 
-// 解析zip包批量导入
+// ========== 导入导出 ==========
 async function importFromZip(zipFile) {
     // 依赖JSZip库，若未引入需动态加载
     if (typeof JSZip === 'undefined') {
@@ -1031,7 +1022,6 @@ async function importFromZip(zipFile) {
     await importFromFiles(files);
 }
 
-// 解析md文件批量导入
 async function importFromFiles(files) {
     for (const file of files) {
         let content = file.content || await file.text();
@@ -1055,7 +1045,6 @@ async function importFromFiles(files) {
     saveToLocalStorage();
 }
 
-// 动态加载JS
 function loadScript(src) {
     return new Promise((resolve, reject) => {
         const s = document.createElement('script');
@@ -1066,7 +1055,7 @@ function loadScript(src) {
     });
 }
 
-// 恢复saveVersion函数，实现自动保存和新建版本
+// ========== 版本自动保存 ==========
 function saveVersion() {
     if (!notesData.currentNoteId) return;
     const note = notesData.notes[notesData.currentNoteId];
