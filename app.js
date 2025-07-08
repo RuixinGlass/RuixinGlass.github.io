@@ -558,10 +558,9 @@ function restoreVersion(versionIndex) {
 // 字数统计功能
 function updateWordCount() {
     const content = noteEditorEl.value || '';
-    const wordCount = content.trim() ? content.trim().split(/\s+/).length : 0;
-    const charCount = content.length;
-    
-    wordCountEl.textContent = `${wordCount} 字 ${charCount} 字符`;
+    // 统计去除所有空白（空格、换行、Tab）后的字符数
+    const wordCount = content.replace(/\s+/g, '').length;
+    wordCountEl.textContent = `${wordCount} 字`;
 }
 
 // 显示Toast通知
