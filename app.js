@@ -361,6 +361,11 @@ function switchNote(noteId) {
     const contentArea = document.querySelector('.content-area');
     if (contentArea) contentArea.classList.remove('editing-mode');
     if (contentArea) contentArea.scrollTop = 0;
+    // --- 移动端优化：切换笔记后自动关闭侧边栏 ---
+    const sidebar = document.querySelector('.notes-list-panel');
+    if (window.innerWidth <= 768 && sidebar && !sidebar.classList.contains('drawer-collapsed')) {
+        sidebar.classList.add('drawer-collapsed');
+    }
 }
 
 function renderMarkdown(content) {
