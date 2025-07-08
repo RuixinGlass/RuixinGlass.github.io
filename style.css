@@ -308,6 +308,7 @@ pre, code {
   top: 0;
   z-index: 10;
   transition: box-shadow 0.2s;
+  padding-top: calc(env(safe-area-inset-top, 0px) + 1.2em);
 }
 
 .note-header::before {

@@ -2,7 +2,7 @@
   "name": "简·记",
   "short_name": "简·记",
   "start_url": ".",
-  "display": "fullscreen",
+  "display": "standalone",
   "background_color": "#fcfcfa",
   "theme_color": "#6a7ba2",
   "icons": [
