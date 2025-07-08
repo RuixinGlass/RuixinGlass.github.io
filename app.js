@@ -117,11 +117,13 @@ window.addEventListener('DOMContentLoaded', function() {
         const endY = e.changedTouches[0].clientY;
         const deltaX = endX - startX;
         const deltaY = Math.abs(endY - startY);
-        if (deltaY > 80) return;
-        if (startX < 40 && deltaX > 40 && sidebar && sidebar.classList.contains(drawerCollapsedClass)) {
+        // 全屏右滑展开侧栏，左滑收回侧栏，避免与系统返回手势冲突
+        if (deltaX > 40 && deltaY < 80 && sidebar && sidebar.classList.contains(drawerCollapsedClass)) {
+            // 右滑，展开侧栏
             sidebar.classList.remove(drawerCollapsedClass);
         }
-        if (startX > 180 && deltaX < -40 && sidebar && !sidebar.classList.contains(drawerCollapsedClass)) {
+        if (deltaX < -40 && deltaY < 80 && sidebar && !sidebar.classList.contains(drawerCollapsedClass)) {
+            // 左滑，收起侧栏
             sidebar.classList.add(drawerCollapsedClass);
         }
     }, {passive: true});

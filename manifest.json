@@ -1,8 +1,8 @@
 {
-  "name": "严谨的版本控制笔记系统",
-  "short_name": "笔记系统",
+  "name": "简·记",
+  "short_name": "简·记",
   "start_url": ".",
-  "display": "standalone",
+  "display": "fullscreen",
   "background_color": "#fcfcfa",
   "theme_color": "#6a7ba2",
   "icons": [

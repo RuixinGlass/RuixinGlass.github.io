@@ -1,4 +1,4 @@
-const CACHE_NAME = 'note-app-cache-v1';
+const CACHE_NAME = 'note-app-cache-v2';
 const urlsToCache = [
   '/',
   '/index.html',
@@ -20,6 +20,7 @@ const urlsToCache = [
   'https://cdn.jsdelivr.net/npm/codemirror@5.65.16/mode/markdown/markdown.min.js'
 ];
 
+// 安装时预缓存核心资源
 self.addEventListener('install', function(event) {
   event.waitUntil(
     caches.open(CACHE_NAME)
@@ -29,15 +30,7 @@ self.addEventListener('install', function(event) {
   );
 });
 
-self.addEventListener('fetch', function(event) {
-  event.respondWith(
-    caches.match(event.request)
-      .then(function(response) {
-        return response || fetch(event.request);
-      })
-  );
-});
-
+// 激活时清理旧缓存
 self.addEventListener('activate', function(event) {
   event.waitUntil(
     caches.keys().then(function(cacheNames) {
@@ -48,6 +41,27 @@ self.addEventListener('activate', function(event) {
           return caches.delete(name);
         })
       );
+    })
+  );
+});
+
+// 拦截所有请求，缓存优先，网络兜底，动态缓存新资源
+self.addEventListener('fetch', function(event) {
+  event.respondWith(
+    caches.match(event.request).then(function(response) {
+      if (response) {
+        return response;
+      }
+      return fetch(event.request).then(function(resp) {
+        // 动态缓存新资源
+        return caches.open(CACHE_NAME).then(function(cache) {
+          cache.put(event.request, resp.clone());
+          return resp;
+        });
+      }).catch(function() {
+        // 断网且缓存没有时，可选返回自定义离线页面
+        // return caches.match('/offline.html');
+      });
     })
   );
 }); 
