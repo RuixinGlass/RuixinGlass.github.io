@@ -223,7 +223,7 @@ window.addEventListener('DOMContentLoaded', function() {
     const DRAG_THRESHOLD = 20;
     const SWIPE_VELOCITY_THRESHOLD = 0.05; // 快速滑动速度阈值 (px/ms)
     const SWIPE_DISTANCE_THRESHOLD = 5;  // 快速滑动最小距离阈值 (px)
-    const CLOSE_THRESHOLD = 0.6; // 关闭抽屉的位置阈值 (70%)
+    const CLOSE_THRESHOLD = 0.7; // 关闭抽屉的位置阈值 (70%)
     
     const ANIMATION_CLASSES = ['drawer-collapsed', 'animate__animated', 'animate__fadeInLeft'];
   
@@ -266,6 +266,13 @@ window.addEventListener('DOMContentLoaded', function() {
       if (mask) {
         mask.style.opacity = '0';
       }
+    }
+  
+    // 同步遮罩层状态的函数
+    function syncMaskState() {
+      if (!mask) return;
+      const isCollapsed = sidebar.classList.contains('drawer-collapsed');
+      mask.style.opacity = isCollapsed ? '0' : '1';
     }
   
     // 根据最终位置和速度决定抽屉状态
@@ -414,6 +421,25 @@ window.addEventListener('DOMContentLoaded', function() {
         }
       }, { passive: false });
     }
+  
+    // 监听侧栏class变化，同步遮罩层状态
+    if (window.MutationObserver && mask) {
+      const observer = new MutationObserver(function(mutations) {
+        mutations.forEach(function(mutation) {
+          if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
+            syncMaskState();
+          }
+        });
+      });
+      
+      observer.observe(sidebar, {
+        attributes: true,
+        attributeFilter: ['class']
+      });
+    }
+  
+    // 初始化时同步一次遮罩层状态
+    syncMaskState();
   
   })();
 
