@@ -42,6 +42,9 @@ const importMdBtn = document.getElementById('importMdBtn');
 const importFolderBtn = document.getElementById('importFolderBtn');
 const importZipBtn = document.getElementById('importZipBtn');
 const importModalCloseBtn = document.getElementById('importModalCloseBtn');
+// 侧栏与常量声明（全局只声明一次）
+const sidebar = document.querySelector('.notes-list-panel');
+const drawerCollapsedClass = 'drawer-collapsed';
 
 // ========== 编辑器与标签状态 ==========
 let cmEditor = null; // Codemirror 5 实例
@@ -92,10 +95,13 @@ window.addEventListener('DOMContentLoaded', function() {
     }
 
     // 4. 移动端侧栏滑动手势
+
+
+    // ========== 旧版全屏滑动抽拉逻辑 ==========
+    /*
     let startX = 0;
     let startY = 0;
     let isTouching = false;
-    const drawerCollapsedClass = 'drawer-collapsed';
     document.addEventListener('touchstart', function(e) {
         if (!isMobile()) return;
         if (e.touches.length !== 1) return;
@@ -110,18 +116,16 @@ window.addEventListener('DOMContentLoaded', function() {
         const endY = e.changedTouches[0].clientY;
         const deltaX = endX - startX;
         const deltaY = Math.abs(endY - startY);
-        // 全屏右滑展开侧栏，左滑收回侧栏，避免与系统返回手势冲突
         if (deltaX > 40 && deltaY < 80 && sidebar && sidebar.classList.contains(drawerCollapsedClass)) {
-            // 右滑，展开侧栏
             sidebar.classList.remove(drawerCollapsedClass);
         }
         if (deltaX < -40 && deltaY < 80 && sidebar && !sidebar.classList.contains(drawerCollapsedClass)) {
-            // 左滑，收起侧栏
             sidebar.classList.add(drawerCollapsedClass);
         }
     }, {passive: true});
+    */
 
-    // 5. 移动端小箭头点击
+    // ========== 小箭头点击逻辑 ==========
     const mobileHint = document.querySelector('.mobile-drawer-hint');
     if (mobileHint && sidebar) {
         mobileHint.addEventListener('click', function(e) {
@@ -194,6 +198,143 @@ window.addEventListener('DOMContentLoaded', function() {
         }
     });
 });
+
+// ========== 移动端全屏可拖拽抽屉基础逻辑 ==========
+(function() {
+  function isMobile() { return window.innerWidth <= 768; } 
+  const sidebar = document.querySelector('.notes-list-panel');
+  const mask = document.querySelector('.drawer-mask');
+  if (!sidebar) return;
+  let dragging = false;
+  let startX = 0;
+  let startY = 0;
+  let currentX = 0;
+  let currentY = 0;
+  let lastTranslate = 0;
+  let wasCollapsed = false;
+  let moved = false;
+  let directionLocked = false;
+  let isDrawerDrag = false;
+  let lastMoveTime = 0;
+  let lastMoveX = 0;
+  const DRAG_THRESHOLD = 20;
+  const ANIMATION_CLASSES = ['drawer-collapsed', 'animate__animated', 'animate__fadeInLeft'];
+
+  function getSidebarWidth() {
+    return sidebar.offsetWidth || 320;
+  }
+
+  function setSidebarTranslate(x) {
+    sidebar.style.transition = 'none';
+    sidebar.style.transform = `translateX(${x}px)`;
+  }
+
+  function resetSidebarTransition() {
+    sidebar.style.transition = '';
+    sidebar.style.transform = '';
+  }
+
+  document.addEventListener('touchstart', function(e) {
+    if (!isMobile()) return;
+    if (e.touches.length !== 1) return;
+    dragging = true;
+    startX = e.touches[0].clientX;
+    startY = e.touches[0].clientY;
+    currentX = startX;
+    currentY = startY;
+    moved = false;
+    directionLocked = false;
+    isDrawerDrag = false;
+    wasCollapsed = sidebar.classList.contains('drawer-collapsed');
+    lastTranslate = wasCollapsed ? -getSidebarWidth() : 0;
+    sidebar.style.willChange = 'transform';
+    lastMoveTime = Date.now();
+    lastMoveX = startX;
+  }, { passive: true });
+
+  document.addEventListener('touchmove', function(e) {
+    if (!dragging || !isMobile()) return;
+    const moveX = e.touches[0].clientX;
+    const moveY = e.touches[0].clientY;
+    const deltaX = moveX - startX;
+    const deltaY = moveY - startY;
+
+    if (!directionLocked) {
+      if (Math.abs(deltaX) > 10 || Math.abs(deltaY) > 10) {
+        directionLocked = true;
+        isDrawerDrag = Math.abs(deltaX) > Math.abs(deltaY);
+      }
+    }
+    if (!isDrawerDrag) return; // 不是水平滑动，直接返回，让页面滚动
+
+    if (!moved && Math.abs(deltaX) > DRAG_THRESHOLD) {
+      moved = true;
+      ANIMATION_CLASSES.forEach(cls => sidebar.classList.remove(cls));
+    }
+    if (moved) {
+      let targetTranslate = lastTranslate + deltaX;
+      const sidebarWidth = getSidebarWidth();
+      targetTranslate = Math.min(0, Math.max(-sidebarWidth, targetTranslate));
+      setSidebarTranslate(targetTranslate);
+      lastMoveTime = Date.now();
+      lastMoveX = moveX;
+      // === 动态遮罩透明度 ===
+      if (mask) {
+        const percent = 1 + (targetTranslate / sidebarWidth); // 0~1
+        mask.style.opacity = percent.toFixed(3);
+      }
+      e.preventDefault();
+    }
+  }, { passive: false });
+
+  document.addEventListener('touchend', function(e) {
+    if (!dragging || !isMobile()) return;
+    dragging = false;
+    sidebar.style.willChange = '';
+    if (!moved) {
+      resetSidebarTransition();
+      if (mask) mask.style.opacity = '';
+      return;
+    }
+    const sidebarWidth = getSidebarWidth();
+    const style = window.getComputedStyle(sidebar);
+    const matrix = new WebKitCSSMatrix(style.transform);
+    const finalX = matrix.m41;
+    // 速度判定
+    const endTime = Date.now();
+    const endX = e.changedTouches[0].clientX;
+    const deltaTime = endTime - lastMoveTime;
+    const deltaFastX = endX - lastMoveX;
+    const velocity = deltaFastX / (deltaTime || 1); // px/ms
+    const VELOCITY_THRESHOLD = 0.5; // 可根据体验调整
+    if (Math.abs(velocity) > VELOCITY_THRESHOLD) {
+      if (velocity > 0) {
+        sidebar.classList.remove('drawer-collapsed');
+      } else {
+        sidebar.classList.add('drawer-collapsed');
+      }
+    } else {
+      if (finalX > -sidebarWidth / 2) {
+        sidebar.classList.remove('drawer-collapsed');
+      } else {
+        sidebar.classList.add('drawer-collapsed');
+      }
+    }
+    sidebar.style.transition = 'transform 0.28s cubic-bezier(0.4,1.4,.6,1)';
+    sidebar.style.transform = '';
+    if (mask) mask.style.opacity = '';
+    setTimeout(() => {
+      sidebar.style.transition = '';
+    }, 300);
+  }, { passive: true });
+
+  // 遮罩点击收回（仅在侧栏完全展开且未拖动时生效）
+  if (mask) {
+    mask.addEventListener('click', function() {
+      sidebar.classList.add('drawer-collapsed');
+    });
+  }
+})();
 
 // ========== 初始化入口 ==========
 function init() {

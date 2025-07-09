@@ -59,6 +59,7 @@
       </svg>
     </div>
     <div class="app-container">
+        <!-- 侧栏内容 -->
         <div class="notes-list-panel drawer-collapsed animate__animated animate__fadeInLeft">
             <div class="notes-panel-header">
                 <div class="sidebar-header">
@@ -74,9 +75,10 @@
                 <ul id="notesList"></ul>
             </div>
         </div>
-        
-        <!-- 主内容区域 -->
-        <div class="note-main-panel animate__animated animate__fadeIn">
+        <!-- 遮罩层，初始隐藏 -->
+        <div class="drawer-mask"></div>
+        <!-- 主内容区 -->
+        <div class="main-content-wrapper">
             <!-- 笔记头部 -->
             <div class="note-header">
                 <div class="note-title-row">
@@ -103,51 +105,55 @@
                     </div>
                 </div>
             </div>
-            
-            <!-- 云同步按钮和弹窗 -->
-            <div class="cloud-sync-bar">
-                <button id="importAllBtn" class="import-all-btn" title="导入全部笔记" aria-label="导入全部笔记" tabindex="0" role="button"><i class="fas fa-file-import"></i></button>
-                <button id="cloudSyncBtn" class="cloud-sync-btn" title="云同步" aria-label="云同步" tabindex="0" role="button"><i class="fas fa-cloud"></i></button>
-            </div>
-            <div id="cloudSyncModal" class="cloud-sync-modal hidden">
-                <div class="cloud-sync-modal-content">
-                    <h3><i class="fas fa-cloud"></i> 云同步设置</h3>
-                    <label>GitHub Token <input type="password" id="cloudTokenInput" placeholder="GitHub Token" autocomplete="off" aria-label="GitHub Token" tabindex="0"></label>
-                    <label>Gist ID（可留空自动创建）<input type="text" id="cloudGistIdInput" placeholder="Gist ID" aria-label="Gist ID" tabindex="0"></label>
-                    <div class="cloud-sync-modal-actions">
-                        <button id="cloudSyncPullBtn" class="btn-primary" aria-label="拉取云端" tabindex="0" role="button"><i class="fas fa-download"></i> 拉取云端</button>
-                        <button id="cloudSyncPushBtn" class="btn-primary" aria-label="上传云端" tabindex="0" role="button"><i class="fas fa-upload"></i> 上传云端</button>
-                        <button id="cloudSyncCloseBtn" class="btn-close" aria-label="关闭云同步弹窗" tabindex="0" role="button"><i class="fas fa-times"></i></button>
+            <!-- 主内容区域 -->
+            <div class="note-main-panel animate__animated animate__fadeIn">
+
+                
+                <!-- 云同步按钮和弹窗 -->
+                <div class="cloud-sync-bar">
+                    <button id="importAllBtn" class="import-all-btn" title="导入全部笔记" aria-label="导入全部笔记" tabindex="0" role="button"><i class="fas fa-file-import"></i></button>
+                    <button id="cloudSyncBtn" class="cloud-sync-btn" title="云同步" aria-label="云同步" tabindex="0" role="button"><i class="fas fa-cloud"></i></button>
+                </div>
+                <div id="cloudSyncModal" class="cloud-sync-modal hidden">
+                    <div class="cloud-sync-modal-content">
+                        <h3><i class="fas fa-cloud"></i> 云同步设置</h3>
+                        <label>GitHub Token <input type="password" id="cloudTokenInput" placeholder="GitHub Token" autocomplete="off" aria-label="GitHub Token" tabindex="0"></label>
+                        <label>Gist ID（可留空自动创建）<input type="text" id="cloudGistIdInput" placeholder="Gist ID" aria-label="Gist ID" tabindex="0"></label>
+                        <div class="cloud-sync-modal-actions">
+                            <button id="cloudSyncPullBtn" class="btn-primary" aria-label="拉取云端" tabindex="0" role="button"><i class="fas fa-download"></i> 拉取云端</button>
+                            <button id="cloudSyncPushBtn" class="btn-primary" aria-label="上传云端" tabindex="0" role="button"><i class="fas fa-upload"></i> 上传云端</button>
+                            <button id="cloudSyncCloseBtn" class="btn-close" aria-label="关闭云同步弹窗" tabindex="0" role="button"><i class="fas fa-times"></i></button>
+                        </div>
+                        <div id="cloudSyncStatus" class="cloud-sync-status"></div>
                     </div>
-                    <div id="cloudSyncStatus" class="cloud-sync-status"></div>
                 </div>
-            </div>
-            
-            <!-- 移动端更多按钮和菜单（仅移动端显示） -->
-            <div class="mobile-menu-bar">
-                <div id="mobileMenuPopup" class="mobile-menu-popup hidden">
-                    <button id="mobileEditBtn" class="mobile-menu-action" aria-label="编辑笔记" tabindex="0" role="button"><i class="fas fa-edit"></i> 编辑笔记</button>
-                    <button id="mobileSaveBtn" class="mobile-menu-action" aria-label="保存版本" tabindex="0" role="button"><i class="fas fa-save"></i> 保存版本</button>
-                    <button id="mobileHistoryBtn" class="mobile-menu-action" aria-label="查看历史" tabindex="0" role="button"><i class="fas fa-history"></i> 查看历史</button>
-                    <button id="mobileCloudBtn" class="mobile-menu-action" aria-label="云同步" tabindex="0" role="button"><i class="fas fa-cloud"></i> 云同步</button>
+                
+                <!-- 移动端更多按钮和菜单（仅移动端显示） -->
+                <div class="mobile-menu-bar">
+                    <div id="mobileMenuPopup" class="mobile-menu-popup hidden">
+                        <button id="mobileEditBtn" class="mobile-menu-action" aria-label="编辑笔记" tabindex="0" role="button"><i class="fas fa-edit"></i> 编辑笔记</button>
+                        <button id="mobileSaveBtn" class="mobile-menu-action" aria-label="保存版本" tabindex="0" role="button"><i class="fas fa-save"></i> 保存版本</button>
+                        <button id="mobileHistoryBtn" class="mobile-menu-action" aria-label="查看历史" tabindex="0" role="button"><i class="fas fa-history"></i> 查看历史</button>
+                        <button id="mobileCloudBtn" class="mobile-menu-action" aria-label="云同步" tabindex="0" role="button"><i class="fas fa-cloud"></i> 云同步</button>
+                    </div>
                 </div>
-            </div>
-            
-            <!-- 移动端菜单按钮和下拉菜单 -->
-            <div id="mobile-menu-btn" class="mobile-only" tabindex="0" aria-label="主菜单" role="button" style="display:none;">
-                <svg width="32" height="32" viewBox="0 0 24 24"><path fill="currentColor" d="M4 6h16M4 12h16M4 18h16" stroke="#7c3aed" stroke-width="2" stroke-linecap="round"/></svg>
-            </div>
-            <div id="mobile-menu-dropdown" class="mobile-only" style="display:none;">
-                <button id="mobile-new-note" aria-label="新建笔记" tabindex="0" role="button">新建笔记</button>
-                <button id="mobile-upload-cloud" aria-label="上传云端" tabindex="0" role="button">上传云端</button>
-                <button id="mobile-download-cloud" aria-label="拉取云端" tabindex="0" role="button">拉取云端</button>
-                <button id="mobile-more" aria-label="更多设置" tabindex="0" role="button">更多设置</button>
-            </div>
-            
-            <!-- 笔记内容区域 -->
-            <div class="content-area">
-                <div id="notePreview" class="markdown-body"></div>
-                <textarea id="noteEditor" placeholder="在此输入笔记内容...&#10;&#10;支持 Markdown 语法：&#10;# 标题&#10;**粗体** *斜体*&#10;- 列表项&#10;```代码块```" aria-label="笔记内容编辑区" tabindex="0"></textarea>
+                
+                <!-- 移动端菜单按钮和下拉菜单 -->
+                <div id="mobile-menu-btn" class="mobile-only" tabindex="0" aria-label="主菜单" role="button" style="display:none;">
+                    <svg width="32" height="32" viewBox="0 0 24 24"><path fill="currentColor" d="M4 6h16M4 12h16M4 18h16" stroke="#7c3aed" stroke-width="2" stroke-linecap="round"/></svg>
+                </div>
+                <div id="mobile-menu-dropdown" class="mobile-only" style="display:none;">
+                    <button id="mobile-new-note" aria-label="新建笔记" tabindex="0" role="button">新建笔记</button>
+                    <button id="mobile-upload-cloud" aria-label="上传云端" tabindex="0" role="button">上传云端</button>
+                    <button id="mobile-download-cloud" aria-label="拉取云端" tabindex="0" role="button">拉取云端</button>
+                    <button id="mobile-more" aria-label="更多设置" tabindex="0" role="button">更多设置</button>
+                </div>
+                
+                <!-- 笔记内容区域 -->
+                <div class="content-area">
+                    <div id="notePreview" class="markdown-body"></div>
+                    <textarea id="noteEditor" placeholder="在此输入笔记内容...&#10;&#10;支持 Markdown 语法：&#10;# 标题&#10;**粗体** *斜体*&#10;- 列表项&#10;```代码块```" aria-label="笔记内容编辑区" tabindex="0"></textarea>
+                </div>
             </div>
         </div>
     </div>

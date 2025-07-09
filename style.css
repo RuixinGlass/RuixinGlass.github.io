@@ -344,8 +344,15 @@ pre, code {
 #notesList li.active .note-meta {
   opacity: 0.9;
 }
-
 /* ========== 主内容区 ========== */
+.main-content-wrapper {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 0%;
+  min-width: 0;
+  min-height: 0;
+}
+/* ========== 文本编辑器容器 ========== */
 .note-main-panel {
   flex: 1;
   display: flex;
@@ -924,6 +931,7 @@ pre, code {
 }
 
 @media (max-width: 768px) {
+  /* 侧栏抽屉样式 */
   .notes-list-panel {
     position: fixed;
     top: 0;
@@ -946,6 +954,23 @@ pre, code {
     transform: translateX(-100%) !important;
     visibility: hidden !important;
   }
+
+  /* 遮罩层样式 */
+  .drawer-mask {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.18);
+    z-index: 11999;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s;
+  }
+  .notes-list-panel:not(.drawer-collapsed) ~ .drawer-mask {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  /* 主内容区、按钮、头部等移动端样式 */
   .container {
     display: block;
     width: 100vw;
@@ -1081,6 +1106,20 @@ pre, code {
   }
   .pc-drawer-hint {
     display: none !important;
+  }
+  .import-all-btn {
+    display: none !important;
+  }
+  .notes-panel-header {
+    padding: var(--spacing-md) var(--spacing-md) var(--spacing-xs) var(--spacing-md);
+  }
+  .notes-container {
+    height: calc(100vh - 90px);
+  }
+  #searchInput.search-input {
+    font-size: 0.95em;
+    height: 1.8em;
+    padding: 0.2em 0.7em;
   }
 }
 
@@ -1589,12 +1628,6 @@ pre, code {
   transform: scaleX(-1);
 }
 
-@media (max-width: 768px) {
-  .pc-drawer-hint {
-    display: none !important;
-  }
-}
-
 body, #noteEditor, .markdown-body, input, button, textarea {
   font-family: var(--font-sans) !important;
 }
@@ -1791,11 +1824,6 @@ code {
 }
 .import-all-btn:hover i {
   color: #fff;
-}
-@media (max-width: 768px) {
-  .import-all-btn {
-    display: none !important;
-  }
 }
 
 .import-modal {
@@ -2031,19 +2059,6 @@ code {
 }
 #tagsList {
   margin-bottom: 0;
-}
-@media (max-width: 768px) {
-  .notes-panel-header {
-    padding: var(--spacing-md) var(--spacing-md) var(--spacing-xs) var(--spacing-md);
-  }
-  .notes-container {
-    height: calc(100vh - 90px);
-  }
-  #searchInput.search-input {
-    font-size: 0.95em;
-    height: 1.8em;
-    padding: 0.2em 0.7em;
-  }
 }
 
 
