@@ -986,9 +986,6 @@ pre, code {
     min-height: 100vh;
     box-sizing: border-box;
   }
-  .notes-list-panel ~ #pc-drawer-toggle {
-    left: 80vw !important;
-  }
   .btn-text, .note-actions .btn-text, #editBtn .btn-text {
     display: none !important;
   }
@@ -1089,7 +1086,7 @@ pre, code {
     display: flex;
     align-items: center;
     justify-content: center;
-    z-index: 20000;
+    z-index: 13000;
     background: transparent;
     pointer-events: auto;
     opacity: 0.7;
@@ -1147,42 +1144,6 @@ pre, code {
     padding: 0;
     overflow: hidden;
     visibility: hidden !important;
-  }
-  #pc-drawer-toggle {
-    position: fixed;
-    left: 0;
-    top: 12px;
-    z-index: 99999;
-    display: flex !important;
-    align-items: center;
-    justify-content: center;
-    width: 40px;
-    height: 40px;
-    background: transparent;
-    color: var(--accent-hover);
-    border: none;
-    box-shadow: none;
-    padding: 0;
-    transition: color 0.2s;
-  }
-  #pc-drawer-toggle:focus,
-  #pc-drawer-toggle:active {
-    outline: none !important;
-    border: none !important;
-    box-shadow: none !important;
-    background: transparent;
-  }
-  #pc-drawer-toggle svg {
-    width: 28px;
-    height: 28px;
-    display: block;
-  }
-  #pc-drawer-toggle svg,
-  #pc-drawer-toggle polygon,
-  #pc-drawer-toggle circle {
-    outline: none !important;
-    border: none !important;
-    stroke: none !important;
   }
   .main-content {
     transition: margin-left 0.28s cubic-bezier(.4,1.4,.6,1), width 0.28s cubic-bezier(.4,1.4,.6,1);
@@ -1447,7 +1408,7 @@ pre, code {
   position: fixed;
   top: 1.5rem;
   right: 1.5rem;
-  z-index: 10000;
+  z-index: 999;
   display: flex;
   flex-direction: row;
   align-items: center;
@@ -1548,22 +1509,8 @@ pre, code {
   margin-top: 0.5em;
 }
 
-/* ========== 移动端菜单按钮样式 ========== */
-#mobile-menu-btn {
-  position: fixed;
-  top: 18px;
-  right: 18px;
-  z-index: 9999;
-  background: #fff;
-  border-radius: 50%;
-  box-shadow: 0 2px 8px rgba(124,58,237,0.08);
-  padding: 8px;
-  cursor: pointer;
-  transition: box-shadow 0.2s;
-}
-#mobile-menu-btn:active, #mobile-menu-btn:focus {
-  box-shadow: 0 4px 16px rgba(124,58,237,0.18);
-}
+
+
 
 /* ========== 移动端下拉菜单样式 ========== */
 #mobile-menu-dropdown {
@@ -1610,14 +1557,9 @@ pre, code {
     display: block;
   }
 }
-/* ========== 只在移动端显示 ========== */
-.mobile-only {
-  display: block;
-}
+
 @media (min-width: 769px) {
-  .mobile-only {
-    display: none;
-  }
+
 }
 
 .mobile-drawer-hint.sidebar-open svg {
