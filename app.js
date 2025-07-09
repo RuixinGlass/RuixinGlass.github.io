@@ -221,9 +221,9 @@ window.addEventListener('DOMContentLoaded', function() {
     
     // 调整后的阈值配置
     const DRAG_THRESHOLD = 20;
-    const SWIPE_VELOCITY_THRESHOLD = 0.1; // 快速滑动速度阈值 (px/ms)
-    const SWIPE_DISTANCE_THRESHOLD = 10;  // 快速滑动最小距离阈值 (px)
-    const CLOSE_THRESHOLD = 0.5; // 关闭抽屉的位置阈值 (50%)
+    const SWIPE_VELOCITY_THRESHOLD = 0.05; // 快速滑动速度阈值 (px/ms)
+    const SWIPE_DISTANCE_THRESHOLD = 5;  // 快速滑动最小距离阈值 (px)
+    const CLOSE_THRESHOLD = 0.6; // 关闭抽屉的位置阈值 (70%)
     
     const ANIMATION_CLASSES = ['drawer-collapsed', 'animate__animated', 'animate__fadeInLeft'];
   
@@ -397,6 +397,23 @@ window.addEventListener('DOMContentLoaded', function() {
       sidebar.style.willChange = '';
       resetSidebarTransition();
     }, { passive: true });
+  
+    // 点击遮罩层收回侧栏
+    if (mask) {
+      mask.addEventListener('click', function(e) {
+        if (!isMobile()) return;
+        hideDrawer();
+      });
+      
+      // 防止遮罩层的触摸事件与拖拽冲突
+      mask.addEventListener('touchstart', function(e) {
+        if (!isMobile()) return;
+        // 如果正在拖拽，不处理点击
+        if (dragging) {
+          e.preventDefault();
+        }
+      }, { passive: false });
+    }
   
   })();
 
