@@ -60,19 +60,16 @@
     </div>
     <div class="app-container">
         <div class="notes-list-panel drawer-collapsed animate__animated animate__fadeInLeft">
-            <div class="sidebar">
+            <div class="notes-panel-header">
                 <div class="sidebar-header">
                     <h2><i class="fas fa-book"></i> 笔记列表</h2>
-                    <p class="sidebar-subtitle">全部笔记</p>
+                    <button id="addNoteBtn" class="btn-close" aria-label="新建笔记" tabindex="0" role="button">
+                        <i class="fas fa-plus"></i>
+                    </button>
                 </div>
-                <div id="tagsList" class="tags-list"></div>
                 <input type="text" id="searchInput" class="search-input" placeholder="搜索笔记..." autocomplete="off" aria-label="搜索笔记" tabindex="0" />
+                <div id="tagsList" class="tags-list"></div>
             </div>
-            
-            <button id="addNoteBtn" class="btn-primary" aria-label="新建笔记" tabindex="0" role="button">
-                <i class="fas fa-plus"></i> 新建笔记
-            </button>
-            
             <div class="notes-container">
                 <ul id="notesList"></ul>
             </div>

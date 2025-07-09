@@ -100,7 +100,7 @@ pre, code {
   width: 320px;
   background: var(--sidebar-bg);
   border-right: 1.5px solid var(--border-color);
-  padding: var(--spacing-xl);
+  padding: 0;
   box-shadow: var(--shadow-lg);
   z-index: 10;
   position: relative;
@@ -273,7 +273,7 @@ pre, code {
 
 #notesList li {
   padding: var(--spacing-md) var(--spacing-lg);
-  margin: 0;
+  margin: 0 0.5em;
   cursor: pointer;
   border-radius: var(--radius-lg);
   transition: all var(--transition-normal);
@@ -562,13 +562,21 @@ pre, code {
   margin: 0.3em 0;
 }
 
-.markdown-body blockquote {
-  margin: 1.5em 0;
-  padding: 0.5em 1em;
-  color: #6a737d;
-  border-left: 0.25em solid #dfe2e5;
-  background: #f6f8fa;
-  border-radius: 0 4px 4px 0;
+.markdown-body > blockquote {
+  margin: 0.3em 0;
+  padding: 0 1em;
+  border-left: 6px solid #e0e0e0;
+  background: none;
+  border-radius: 0;
+  font-style: normal;
+  font-size: 1.05em;
+  line-height: var(--line-height-base);
+  box-shadow: none;
+}
+
+.markdown-body blockquote,
+.markdown-body blockquote p {
+  color: #888;
 }
 
 .markdown-body code,
@@ -723,7 +731,7 @@ pre, code {
   border: 1.5px solid var(--accent-color);
   border-radius: var(--radius-lg);
     cursor: pointer;
-  transition: all var(--transition-normal);
+  transition: background 0.2s, color 0.2s, border 0.2s, box-shadow 0.2s;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -873,12 +881,12 @@ pre, code {
 
 /* ========== 合并动画 keyframes ========== */
 @keyframes fadeInSlide {
-  from {
-    opacity: 0;
+  from { 
+    opacity: 0; 
     transform: translateY(20px);
   }
-  to {
-    opacity: 1;
+  to { 
+    opacity: 1; 
     transform: translateY(0);
   }
 }
@@ -936,6 +944,7 @@ pre, code {
   }
   .notes-list-panel.drawer-collapsed {
     transform: translateX(-100%) !important;
+    visibility: hidden !important;
   }
   .container {
     display: block;
@@ -1098,6 +1107,7 @@ pre, code {
     box-shadow: none;
     padding: 0;
     overflow: hidden;
+    visibility: hidden !important;
   }
   #pc-drawer-toggle {
     position: fixed;
@@ -1620,7 +1630,7 @@ body, #noteEditor, .markdown-body, input, button, textarea {
   flex-wrap: wrap;
   gap: 0.5em 0.7em;
   margin-bottom: var(--spacing-md);
-  padding: 0.2em 0 0.5em 0;
+  padding: 0.2em 0 0 0;
 }
 .tag-item {
   display: inline-block;
@@ -1939,7 +1949,7 @@ code {
 }
 
 .notes-container {
-  margin-top: var(--spacing-xl);
+  margin-bottom: var(--spacing-xl);
 }
 
 /* 彻底隐藏 Codemirror 虚拟滚动条 */
@@ -1950,6 +1960,90 @@ code {
   height: 0 !important;
   opacity: 0 !important;
   pointer-events: none !important;
+}
+
+.notes-panel-header {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: var(--primary-bg);
+  width: 100%;
+  padding: var(--spacing-lg) var(--spacing-xl) var(--spacing-xl) var(--spacing-xl);
+  border-bottom: 1px solid var(--border-color);
+}
+.notes-panel-header .sidebar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--spacing-xs);
+}
+.notes-panel-header h2 {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--text-main);
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+}
+#addNoteBtn.btn-close,
+.btn-close {
+  /* 只为需要的属性添加过渡动画 */
+  transition: background 0.2s, color 0.2s, border 0.2s, box-shadow 0.2s;
+}
+#addNoteBtn {
+  /* 只显示加号图标，隐藏所有文字 */
+}
+#addNoteBtn .btn-text,
+#addNoteBtn span,
+#addNoteBtn::after {
+  display: none !important;
+  visibility: hidden !important;
+  width: 0 !important;
+  height: 0 !important;
+  font-size: 0 !important;
+  content: none !important;
+}
+.notes-list-panel { overflow: unset !important; }
+.notes-container {
+  background:var(--primary-bg);
+  padding-top: 1em;
+  padding-bottom: 10.0em;
+  overflow-y: auto;
+  height: calc(100vh - 120px);
+}
+#searchInput.search-input {
+  width: 100%;
+  height: 2.1em;
+  font-size: 0.98em;
+  background: #f7f7f3;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  box-shadow: none;
+  padding: 0.3em 1em;
+  margin: var(--spacing-xs) 0 var(--spacing-xs) 0;
+  color: var(--text-main);
+  outline: none;
+  transition: border-color 0.2s;
+}
+#searchInput.search-input:focus {
+  border-color: var(--accent-color);
+}
+#tagsList {
+  margin-bottom: 0;
+}
+@media (max-width: 768px) {
+  .notes-panel-header {
+    padding: var(--spacing-md) var(--spacing-md) var(--spacing-xs) var(--spacing-md);
+  }
+  .notes-container {
+    height: calc(100vh - 90px);
+  }
+  #searchInput.search-input {
+    font-size: 0.95em;
+    height: 1.8em;
+    padding: 0.2em 0.7em;
+  }
 }
 
 
