@@ -221,8 +221,8 @@ window.addEventListener('DOMContentLoaded', function() {
     
     // 调整后的阈值配置
     const DRAG_THRESHOLD = 20;
-    const SWIPE_VELOCITY_THRESHOLD = 0.3; // 快速滑动速度阈值 (px/ms)
-    const SWIPE_DISTANCE_THRESHOLD = 20;  // 快速滑动最小距离阈值 (px)
+    const SWIPE_VELOCITY_THRESHOLD = 0.1; // 快速滑动速度阈值 (px/ms)
+    const SWIPE_DISTANCE_THRESHOLD = 10;  // 快速滑动最小距离阈值 (px)
     const CLOSE_THRESHOLD = 0.5; // 关闭抽屉的位置阈值 (50%)
     
     const ANIMATION_CLASSES = ['drawer-collapsed', 'animate__animated', 'animate__fadeInLeft'];
