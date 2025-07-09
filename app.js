@@ -201,140 +201,204 @@ window.addEventListener('DOMContentLoaded', function() {
 
 // ========== 移动端全屏可拖拽抽屉基础逻辑 ==========
 (function() {
-  function isMobile() { return window.innerWidth <= 768; } 
-  const sidebar = document.querySelector('.notes-list-panel');
-  const mask = document.querySelector('.drawer-mask');
-  if (!sidebar) return;
-  let dragging = false;
-  let startX = 0;
-  let startY = 0;
-  let currentX = 0;
-  let currentY = 0;
-  let lastTranslate = 0;
-  let wasCollapsed = false;
-  let moved = false;
-  let directionLocked = false;
-  let isDrawerDrag = false;
-  let lastMoveTime = 0;
-  let lastMoveX = 0;
-  const DRAG_THRESHOLD = 20;
-  const ANIMATION_CLASSES = ['drawer-collapsed', 'animate__animated', 'animate__fadeInLeft'];
-
-  function getSidebarWidth() {
-    return sidebar.offsetWidth || 320;
-  }
-
-  function setSidebarTranslate(x) {
-    sidebar.style.transition = 'none';
-    sidebar.style.transform = `translateX(${x}px)`;
-  }
-
-  function resetSidebarTransition() {
-    sidebar.style.transition = '';
-    sidebar.style.transform = '';
-  }
-
-  document.addEventListener('touchstart', function(e) {
-    if (!isMobile()) return;
-    if (e.touches.length !== 1) return;
-    dragging = true;
-    startX = e.touches[0].clientX;
-    startY = e.touches[0].clientY;
-    currentX = startX;
-    currentY = startY;
-    moved = false;
-    directionLocked = false;
-    isDrawerDrag = false;
-    wasCollapsed = sidebar.classList.contains('drawer-collapsed');
-    lastTranslate = wasCollapsed ? -getSidebarWidth() : 0;
-    sidebar.style.willChange = 'transform';
-    lastMoveTime = Date.now();
-    lastMoveX = startX;
-  }, { passive: true });
-
-  document.addEventListener('touchmove', function(e) {
-    if (!dragging || !isMobile()) return;
-    const moveX = e.touches[0].clientX;
-    const moveY = e.touches[0].clientY;
-    const deltaX = moveX - startX;
-    const deltaY = moveY - startY;
-
-    if (!directionLocked) {
-      if (Math.abs(deltaX) > 10 || Math.abs(deltaY) > 10) {
-        directionLocked = true;
-        isDrawerDrag = Math.abs(deltaX) > Math.abs(deltaY);
-      }
+    function isMobile() { return window.innerWidth <= 768; } 
+    const sidebar = document.querySelector('.notes-list-panel');
+    const mask = document.querySelector('.drawer-mask');
+    if (!sidebar) return;
+    
+    let dragging = false;
+    let startX = 0;
+    let startY = 0;
+    let currentX = 0;
+    let currentY = 0;
+    let lastTranslate = 0;
+    let wasCollapsed = false;
+    let moved = false;
+    let directionLocked = false;
+    let isDrawerDrag = false;
+    let lastMoveTime = 0;
+    let lastMoveX = 0;
+    
+    // 调整后的阈值配置
+    const DRAG_THRESHOLD = 20;
+    const SWIPE_VELOCITY_THRESHOLD = 0.3; // 快速滑动速度阈值 (px/ms)
+    const SWIPE_DISTANCE_THRESHOLD = 50;  // 快速滑动最小距离阈值 (px)
+    const CLOSE_THRESHOLD = 0.5; // 关闭抽屉的位置阈值 (50%)
+    
+    const ANIMATION_CLASSES = ['drawer-collapsed', 'animate__animated', 'animate__fadeInLeft'];
+  
+    function getSidebarWidth() {
+      return sidebar.offsetWidth || 320;
     }
-    if (!isDrawerDrag) return; // 不是水平滑动，直接返回，让页面滚动
-
-    if (!moved && Math.abs(deltaX) > DRAG_THRESHOLD) {
-      moved = true;
-      ANIMATION_CLASSES.forEach(cls => sidebar.classList.remove(cls));
+  
+    function setSidebarTranslate(x) {
+      sidebar.style.transition = 'none';
+      sidebar.style.transform = `translateX(${x}px)`;
     }
-    if (moved) {
-      let targetTranslate = lastTranslate + deltaX;
-      const sidebarWidth = getSidebarWidth();
-      targetTranslate = Math.min(0, Math.max(-sidebarWidth, targetTranslate));
-      setSidebarTranslate(targetTranslate);
-      lastMoveTime = Date.now();
-      lastMoveX = moveX;
-      // === 动态遮罩透明度 ===
-      if (mask) {
-        const percent = 1 + (targetTranslate / sidebarWidth); // 0~1
-        mask.style.opacity = percent.toFixed(3);
-      }
-      e.preventDefault();
-    }
-  }, { passive: false });
-
-  document.addEventListener('touchend', function(e) {
-    if (!dragging || !isMobile()) return;
-    dragging = false;
-    sidebar.style.willChange = '';
-    if (!moved) {
-      resetSidebarTransition();
-      if (mask) mask.style.opacity = '';
-      return;
-    }
-    const sidebarWidth = getSidebarWidth();
-    const style = window.getComputedStyle(sidebar);
-    const matrix = new WebKitCSSMatrix(style.transform);
-    const finalX = matrix.m41;
-    // 速度判定
-    const endTime = Date.now();
-    const endX = e.changedTouches[0].clientX;
-    const deltaTime = endTime - lastMoveTime;
-    const deltaFastX = endX - lastMoveX;
-    const velocity = deltaFastX / (deltaTime || 1); // px/ms
-    const VELOCITY_THRESHOLD = 0.5; // 可根据体验调整
-    if (Math.abs(velocity) > VELOCITY_THRESHOLD) {
-      if (velocity > 0) {
-        sidebar.classList.remove('drawer-collapsed');
-      } else {
-        sidebar.classList.add('drawer-collapsed');
-      }
-    } else {
-      if (finalX > -sidebarWidth / 2) {
-        sidebar.classList.remove('drawer-collapsed');
-      } else {
-        sidebar.classList.add('drawer-collapsed');
-      }
-    }
-    sidebar.style.transition = 'transform 0.28s cubic-bezier(0.4,1.4,.6,1)';
-    sidebar.style.transform = '';
-    if (mask) mask.style.opacity = '';
-    setTimeout(() => {
+  
+    function resetSidebarTransition() {
       sidebar.style.transition = '';
-    }, 300);
-  }, { passive: true });
-
-  // 遮罩点击收回（仅在侧栏完全展开且未拖动时生效）
-  if (mask) {
-    mask.addEventListener('click', function() {
+      sidebar.style.transform = '';
+    }
+  
+    // 计算滑动速度
+    function calculateVelocity(currentTime, currentX, lastTime, lastX) {
+      const timeDelta = currentTime - lastTime;
+      const distanceDelta = currentX - lastX;
+      return timeDelta > 0 ? Math.abs(distanceDelta) / timeDelta : 0;
+    }
+  
+    // 显示抽屉
+    function showDrawer() {
+      ANIMATION_CLASSES.forEach(cls => sidebar.classList.remove(cls));
+      sidebar.classList.remove('drawer-collapsed');
+      resetSidebarTransition();
+      if (mask) {
+        mask.style.opacity = '1';
+      }
+    }
+  
+    // 隐藏抽屉
+    function hideDrawer() {
       sidebar.classList.add('drawer-collapsed');
-    });
-  }
-})();
+      ANIMATION_CLASSES.slice(1).forEach(cls => sidebar.classList.add(cls));
+      resetSidebarTransition();
+      if (mask) {
+        mask.style.opacity = '0';
+      }
+    }
+  
+    // 根据最终位置和速度决定抽屉状态
+    function finalizeDrawerState(finalTranslate, velocity, deltaX) {
+      const sidebarWidth = getSidebarWidth();
+      const currentPercent = Math.abs(finalTranslate) / sidebarWidth;
+      
+      // 快速滑动判定
+      const isSwipeLeft = deltaX < -SWIPE_DISTANCE_THRESHOLD && velocity > SWIPE_VELOCITY_THRESHOLD;
+      const isSwipeRight = deltaX > SWIPE_DISTANCE_THRESHOLD && velocity > SWIPE_VELOCITY_THRESHOLD;
+      
+      let shouldClose = false;
+      
+      if (isSwipeLeft) {
+        // 快速向左滑动 - 关闭抽屉
+        shouldClose = true;
+      } else if (isSwipeRight) {
+        // 快速向右滑动 - 打开抽屉
+        shouldClose = false;
+      } else {
+        // 根据位置判断
+        shouldClose = currentPercent > CLOSE_THRESHOLD;
+      }
+      
+      if (shouldClose) {
+        hideDrawer();
+      } else {
+        showDrawer();
+      }
+    }
+  
+    document.addEventListener('touchstart', function(e) {
+      if (!isMobile()) return;
+      if (e.touches.length !== 1) return;
+      
+      dragging = true;
+      startX = e.touches[0].clientX;
+      startY = e.touches[0].clientY;
+      currentX = startX;
+      currentY = startY;
+      moved = false;
+      directionLocked = false;
+      isDrawerDrag = false;
+      wasCollapsed = sidebar.classList.contains('drawer-collapsed');
+      lastTranslate = wasCollapsed ? -getSidebarWidth() : 0;
+      sidebar.style.willChange = 'transform';
+      lastMoveTime = Date.now();
+      lastMoveX = startX;
+    }, { passive: true });
+  
+    document.addEventListener('touchmove', function(e) {
+      if (!dragging || !isMobile()) return;
+      
+      const moveX = e.touches[0].clientX;
+      const moveY = e.touches[0].clientY;
+      const deltaX = moveX - startX;
+      const deltaY = moveY - startY;
+  
+      if (!directionLocked) {
+        if (Math.abs(deltaX) > 10 || Math.abs(deltaY) > 10) {
+          directionLocked = true;
+          isDrawerDrag = Math.abs(deltaX) > Math.abs(deltaY);
+        }
+      }
+      
+      if (!isDrawerDrag) return; // 不是水平滑动，直接返回，让页面滚动
+  
+      if (!moved && Math.abs(deltaX) > DRAG_THRESHOLD) {
+        moved = true;
+        ANIMATION_CLASSES.forEach(cls => sidebar.classList.remove(cls));
+      }
+      
+      if (moved) {
+        let targetTranslate = lastTranslate + deltaX;
+        const sidebarWidth = getSidebarWidth();
+        targetTranslate = Math.min(0, Math.max(-sidebarWidth, targetTranslate));
+        setSidebarTranslate(targetTranslate);
+        
+        // 更新时间和位置用于速度计算
+        const currentTime = Date.now();
+        if (currentTime - lastMoveTime > 16) { // 限制更新频率，大约60fps
+          lastMoveTime = currentTime;
+          lastMoveX = moveX;
+        }
+        
+        // === 动态遮罩透明度 ===
+        if (mask) {
+          const percent = 1 + (targetTranslate / sidebarWidth); // 0~1
+          mask.style.opacity = percent.toFixed(3);
+        }
+        e.preventDefault();
+      }
+    }, { passive: false });
+  
+    // 新增：touchend 事件处理
+    document.addEventListener('touchend', function(e) {
+      if (!dragging || !isMobile()) return;
+      
+      dragging = false;
+      sidebar.style.willChange = '';
+      
+      if (moved && isDrawerDrag) {
+        const endX = e.changedTouches[0].clientX;
+        const endTime = Date.now();
+        const deltaX = endX - startX;
+        
+        // 计算滑动速度
+        const velocity = calculateVelocity(endTime, endX, lastMoveTime, lastMoveX);
+        
+        // 获取当前位置
+        const currentTransform = sidebar.style.transform;
+        const currentTranslate = currentTransform 
+          ? parseFloat(currentTransform.match(/translateX\(([^)]+)px\)/)?.[1] || 0)
+          : (wasCollapsed ? -getSidebarWidth() : 0);
+        
+        // 根据速度和位置决定最终状态
+        finalizeDrawerState(currentTranslate, velocity, deltaX);
+      } else {
+        // 没有移动，恢复原状态
+        resetSidebarTransition();
+      }
+    }, { passive: true });
+  
+    // 处理触摸取消事件
+    document.addEventListener('touchcancel', function(e) {
+      if (!dragging || !isMobile()) return;
+      
+      dragging = false;
+      sidebar.style.willChange = '';
+      resetSidebarTransition();
+    }, { passive: true });
+  
+  })();
 
 // ========== 初始化入口 ==========
 function init() {
