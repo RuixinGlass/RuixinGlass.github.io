@@ -1072,6 +1072,24 @@ pre, code {
     padding-left: var(--spacing-md);
     padding-right: var(--spacing-md);
   }
+  .content-area.editing-mode {
+    /* 让 content-area 自身撑满 note-main-panel 的剩余空间 */
+    flex: 1;
+    /* 防止 content-area 自身出现滚动条，滚动应在编辑器内部 */
+    overflow: hidden;
+    background: #f8f8f5;
+    transition: background 0.2s;
+  }
+
+  .content-area.editing-mode .CodeMirror {
+    /* 让 CodeMirror 组件占满其父容器（content-area）*/
+    height: 100% !important;
+  }
+
+  .content-area.editing-mode .CodeMirror-scroll {
+    /* 这是关键：覆盖 CodeMirror 默认的 auto-height 样式（overflow: visible），改为让编辑器内部可以独立滚动。*/
+    overflow-y: auto !important;
+  }
   .markdown-body, #notePreview, #noteEditor {
     padding-left: 0.5em;
     padding-right: 0.5em;
@@ -1558,10 +1576,6 @@ pre, code {
   }
 }
 
-@media (min-width: 769px) {
-
-}
-
 .mobile-drawer-hint.sidebar-open svg {
   transform: scaleX(-1);
 }
@@ -1879,23 +1893,6 @@ code {
   height: 0 !important;
   opacity: 0 !important;
   pointer-events: none !important;
-}
-
-@media (min-width: 769px) {
-  .CodeMirror {
-    max-width: 900px !important;
-    margin-left: auto !important;
-    margin-right: auto !important;
-    padding-top: 32px !important;
-    padding-bottom: 32px !important;
-  }
-}
-
-@media (min-width: 769px) {
-  .content-area.editing-mode {
-    background: #f8f8f5 !important;
-    transition: background 0.2s;
-  }
 }
 
 .note-header-top {

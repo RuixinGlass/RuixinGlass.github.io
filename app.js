@@ -939,7 +939,7 @@ function setupEventListeners() {
                     cmConfig.cursorScrollMargin = 60;
                 }
                 cmEditor = CodeMirror.fromTextArea(noteEditorEl, cmConfig);
-                cmEditor.setSize('100%');
+                cmEditor.setSize('100%', '100%'); // <-- 修改于此
                 // 移动端同步机制
                 if (isMobile()) {
                     const syncToTextarea = () => {
