@@ -1589,12 +1589,11 @@ body, #noteEditor, .markdown-body, input, button, textarea {
 }
 
 .note-header.shrink .note-title-row {
-  height: 0 !important;
+  max-height: 0 !important;
   opacity: 0 !important;
   pointer-events: none !important;
   margin: 0 !important;
   padding: 0 !important;
-  overflow: hidden !important;
 }
 
 /* ========== 标题行独立上边距 ========== */
