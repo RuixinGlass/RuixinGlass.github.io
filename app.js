@@ -49,6 +49,7 @@ const drawerCollapsedClass = 'drawer-collapsed';
 // ========== 编辑器与标签状态 ==========
 let cmEditor = null; // Codemirror 5 实例
 let selectedTags = []; // 当前选中的标签
+let isSwitchingView = false; // 新增这一行
 let lastMainPanelScrollRatio = 0; // 记录滚动比例
 let searchKeyword = '';
 
@@ -186,6 +187,7 @@ window.addEventListener('DOMContentLoaded', function() {
     const noteHeader = document.querySelector('.note-header');
     const mainContent = document.querySelector('.note-main-panel') || window;
     (mainContent || window).addEventListener('scroll', function() {
+        if (isSwitchingView) return; // 新增：如果正在切换视图，则忽略滚动事件
         const scrollTop = mainContent.scrollTop || window.scrollY || 0;
         if (scrollTop > 60) {
             noteHeader.classList.add('shrink');
@@ -912,10 +914,13 @@ function setupEventListeners() {
     
     // 编辑/预览切换
     editBtn.addEventListener('click', () => {
+        isSwitchingView = true; // <-- 新增：在操作开始时，设置标志位
+
         const mainPanel = document.querySelector('.note-main-panel');
         const scrollTop = mainPanel.scrollTop;
         const isEditing = cmEditor && cmEditor.getWrapperElement().style.display !== 'none';
         const contentArea = document.querySelector('.content-area');
+
         if (!isEditing) {
             noteEditorEl.style.display = 'none';
             notePreviewEl.style.display = 'none';
@@ -997,6 +1002,11 @@ function setupEventListeners() {
         // 强制恢复主页面滚动条位置
         setTimeout(() => {
             mainPanel.scrollTop = scrollTop;
+            // 新增：在所有DOM操作和滚动恢复完成后，重置标志位
+            // 再次使用setTimeout确保它在渲染队列的末尾执行
+            setTimeout(() => {
+                isSwitchingView = false;
+            }, 50); // 延迟50毫秒以确保浏览器已完成渲染
         }, 0);
     });
     
