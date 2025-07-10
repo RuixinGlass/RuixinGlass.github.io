@@ -1336,7 +1336,7 @@ pre, code {
   font-family: var(--font-mono), monospace;
   font-size: 0.98em;
   padding: var(--spacing-lg) var(--spacing-xl);
-  margin-bottom: var(--spacing-xl);
+  /*margin-bottom: var(--spacing-xl);*/
   white-space: pre-wrap;
   word-break: break-all;
 }
@@ -1671,7 +1671,7 @@ h3 {
 p, ul, ol, blockquote, pre, code {
   margin-top: 0;
   margin-bottom: var(--spacing-paragraph);
-  font-size: 1.05em;
+  /*font-size: 1.05em;*/
   line-height: var(--line-height-base);
 }
 ul, ol {
