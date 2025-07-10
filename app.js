@@ -58,7 +58,6 @@ function isMobile() { return window.innerWidth <= 768; }
 // ========== 初始化与主流程 ==========
 window.addEventListener('DOMContentLoaded', function() {
     // 只在PC端移除drawer-collapsed，移动端不处理
-    const sidebar = document.querySelector('.notes-list-panel');
     if (sidebar && window.innerWidth > 768) {
         sidebar.classList.remove('drawer-collapsed');
     }
@@ -125,7 +124,7 @@ window.addEventListener('DOMContentLoaded', function() {
     }, {passive: true});
     */
 
-    // ========== 小箭头点击逻辑 ==========
+    // ========== 移动端小箭头点击逻辑 ==========
     const mobileHint = document.querySelector('.mobile-drawer-hint');
     if (mobileHint && sidebar) {
         mobileHint.addEventListener('click', function(e) {
@@ -201,16 +200,27 @@ window.addEventListener('DOMContentLoaded', function() {
 
 // ========== 移动端全屏可拖拽抽屉基础逻辑 ==========
 (function() {
-    function isMobile() { return window.innerWidth <= 768; } 
-    const sidebar = document.querySelector('.notes-list-panel');
-    const mask = document.querySelector('.drawer-mask');
-    if (!sidebar) return;
+    // 使用已存在的全局变量
+    // const sidebar = document.querySelector('.notes-list-panel');
+    // const drawerCollapsedClass = 'drawer-collapsed';
     
+    function isMobile() { 
+      return window.innerWidth <= 768; 
+    } 
+    
+    // 检查必要元素是否存在
+    if (!sidebar) {
+      console.warn('侧栏元素未找到');
+      return;
+    }
+    
+    const mask = document.querySelector('.drawer-mask');
+    
+    // 拖拽状态变量
     let dragging = false;
     let startX = 0;
     let startY = 0;
-    let currentX = 0;
-    let currentY = 0;
+    let startTime = 0;
     let lastTranslate = 0;
     let wasCollapsed = false;
     let moved = false;
@@ -219,23 +229,42 @@ window.addEventListener('DOMContentLoaded', function() {
     let lastMoveTime = 0;
     let lastMoveX = 0;
     
-    // 调整后的阈值配置
-    const DRAG_THRESHOLD = 20;
-    const SWIPE_VELOCITY_THRESHOLD = 0.05; // 快速滑动速度阈值 (px/ms)
-    const SWIPE_DISTANCE_THRESHOLD = 5;  // 快速滑动最小距离阈值 (px)
-    const CLOSE_THRESHOLD = 0.7; // 关闭抽屉的位置阈值 (70%)
+    // 配置常量
+    const DRAG_THRESHOLD = 20;           // 开始拖拽的阈值
+    const CLOSE_THRESHOLD = 0.5;         // 关闭抽屉的位置阈值 (50%)
+    const DIRECTION_THRESHOLD = 15;      // 方向判定阈值 (px)
     
-    const ANIMATION_CLASSES = ['drawer-collapsed', 'animate__animated', 'animate__fadeInLeft'];
+    // 分开设置的速度和距离阈值
+    const SWIPE_CONFIG = {
+      // 抽出侧栏（向右滑动）- 更容易触发
+      SHOW: {
+        VELOCITY_THRESHOLD: 0.2,    // 抽出速度阈值 (px/ms) - 较低，更容易抽出
+        DISTANCE_THRESHOLD: 30,     // 抽出距离阈值 (px) - 较低
+        POSITION_THRESHOLD: 0.3     // 位置阈值 (30%) - 较低，更容易保持打开
+      },
+      // 推回侧栏（向左滑动）- 避免误关闭
+      HIDE: {
+        VELOCITY_THRESHOLD: 0.2,   // 推回速度阈值 (px/ms) - 较高，避免误关闭
+        DISTANCE_THRESHOLD: 10,     // 推回距离阈值 (px) - 较高
+        POSITION_THRESHOLD: 0.4     // 位置阈值 (70%) - 较高，不容易意外关闭
+      }
+    }
+    
+    // 动画类名
+    const ANIMATION_CLASSES = [drawerCollapsedClass, 'animate__animated', 'animate__fadeInLeft'];
   
+    // 获取侧栏宽度
     function getSidebarWidth() {
       return sidebar.offsetWidth || 320;
     }
   
+    // 设置侧栏位移
     function setSidebarTranslate(x) {
       sidebar.style.transition = 'none';
       sidebar.style.transform = `translateX(${x}px)`;
     }
   
+    // 重置侧栏过渡效果
     function resetSidebarTransition() {
       sidebar.style.transition = '';
       sidebar.style.transform = '';
@@ -251,7 +280,7 @@ window.addEventListener('DOMContentLoaded', function() {
     // 显示抽屉
     function showDrawer() {
       ANIMATION_CLASSES.forEach(cls => sidebar.classList.remove(cls));
-      sidebar.classList.remove('drawer-collapsed');
+      sidebar.classList.remove(drawerCollapsedClass);
       resetSidebarTransition();
       if (mask) {
         mask.style.opacity = '1';
@@ -260,7 +289,8 @@ window.addEventListener('DOMContentLoaded', function() {
   
     // 隐藏抽屉
     function hideDrawer() {
-      sidebar.classList.add('drawer-collapsed');
+      sidebar.classList.add(drawerCollapsedClass);
+      // 只添加动画类，不重复添加collapsed类
       ANIMATION_CLASSES.slice(1).forEach(cls => sidebar.classList.add(cls));
       resetSidebarTransition();
       if (mask) {
@@ -268,61 +298,77 @@ window.addEventListener('DOMContentLoaded', function() {
       }
     }
   
-    // 同步遮罩层状态的函数
+    // 同步遮罩层状态
     function syncMaskState() {
       if (!mask) return;
-      const isCollapsed = sidebar.classList.contains('drawer-collapsed');
+      const isCollapsed = sidebar.classList.contains(drawerCollapsedClass);
       mask.style.opacity = isCollapsed ? '0' : '1';
     }
   
     // 根据最终位置和速度决定抽屉状态
-    function finalizeDrawerState(finalTranslate, velocity, deltaX) {
+    function finalizeDrawerState(currentTranslate, deltaX, deltaTime) {
       const sidebarWidth = getSidebarWidth();
-      const currentPercent = Math.abs(finalTranslate) / sidebarWidth;
+      const currentPercent = Math.abs(currentTranslate) / sidebarWidth;
       
-      // 快速滑动判定
-      const isSwipeLeft = deltaX < -SWIPE_DISTANCE_THRESHOLD && velocity > SWIPE_VELOCITY_THRESHOLD;
-      const isSwipeRight = deltaX > SWIPE_DISTANCE_THRESHOLD && velocity > SWIPE_VELOCITY_THRESHOLD;
+      // 计算速度
+      const velocity = deltaTime > 0 ? Math.abs(deltaX) / deltaTime : 0;
       
-      let shouldClose = false;
-      
-      if (isSwipeLeft) {
-        // 快速向左滑动 - 关闭抽屉
-        shouldClose = true;
-      } else if (isSwipeRight) {
-        // 快速向右滑动 - 打开抽屉
-        shouldClose = false;
+      // 判断滑动方向并使用对应的阈值
+      if (deltaX > 0) {
+        // 向右滑动 - 抽出侧栏
+        const config = SWIPE_CONFIG.SHOW;
+        const isSwipeRight = deltaX > config.DISTANCE_THRESHOLD && velocity > config.VELOCITY_THRESHOLD;
+        
+        if (isSwipeRight) {
+          showDrawer();
+          return;
+        }
+        
+        // 根据位置判断，使用抽出的位置阈值
+        if (currentPercent < config.POSITION_THRESHOLD) {
+          showDrawer();
+        } else {
+          hideDrawer();
+        }
       } else {
-        // 根据位置判断
-        shouldClose = currentPercent > CLOSE_THRESHOLD;
-      }
-      
-      if (shouldClose) {
-        hideDrawer();
-      } else {
-        showDrawer();
+        // 向左滑动 - 推回侧栏
+        const config = SWIPE_CONFIG.HIDE;
+        const isSwipeLeft = deltaX < -config.DISTANCE_THRESHOLD && velocity > config.VELOCITY_THRESHOLD;
+        
+        if (isSwipeLeft) {
+          hideDrawer();
+          return;
+        }
+        
+        // 根据位置判断，使用推回的位置阈值
+        if (currentPercent > config.POSITION_THRESHOLD) {
+          hideDrawer();
+        } else {
+          showDrawer();
+        }
       }
     }
   
+    // 触摸开始事件
     document.addEventListener('touchstart', function(e) {
       if (!isMobile()) return;
       if (e.touches.length !== 1) return;
       
       dragging = true;
+      startTime = Date.now();
       startX = e.touches[0].clientX;
       startY = e.touches[0].clientY;
-      currentX = startX;
-      currentY = startY;
       moved = false;
       directionLocked = false;
       isDrawerDrag = false;
-      wasCollapsed = sidebar.classList.contains('drawer-collapsed');
+      wasCollapsed = sidebar.classList.contains(drawerCollapsedClass);
       lastTranslate = wasCollapsed ? -getSidebarWidth() : 0;
       sidebar.style.willChange = 'transform';
-      lastMoveTime = Date.now();
+      lastMoveTime = startTime;
       lastMoveX = startX;
     }, { passive: true });
   
+    // 触摸移动事件
     document.addEventListener('touchmove', function(e) {
       if (!dragging || !isMobile()) return;
       
@@ -331,15 +377,19 @@ window.addEventListener('DOMContentLoaded', function() {
       const deltaX = moveX - startX;
       const deltaY = moveY - startY;
   
+      // 方向锁定判断 - 只有水平滑动距离大于垂直滑动距离时才认为是抽屉拖拽
       if (!directionLocked) {
-        if (Math.abs(deltaX) > 10 || Math.abs(deltaY) > 10) {
+        if (Math.abs(deltaX) > DIRECTION_THRESHOLD || Math.abs(deltaY) > DIRECTION_THRESHOLD) {
           directionLocked = true;
-          isDrawerDrag = Math.abs(deltaX) > Math.abs(deltaY);
+          // 关键逻辑：只有当水平距离明显大于垂直距离时才判定为抽屉拖拽
+          isDrawerDrag = Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > DIRECTION_THRESHOLD;
         }
       }
       
-      if (!isDrawerDrag) return; // 不是水平滑动，直接返回，让页面滚动
+      // 如果不是水平滑动，让页面正常滚动
+      if (!isDrawerDrag) return;
   
+      // 达到拖拽阈值后开始移动
       if (!moved && Math.abs(deltaX) > DRAG_THRESHOLD) {
         moved = true;
         ANIMATION_CLASSES.forEach(cls => sidebar.classList.remove(cls));
@@ -348,26 +398,22 @@ window.addEventListener('DOMContentLoaded', function() {
       if (moved) {
         let targetTranslate = lastTranslate + deltaX;
         const sidebarWidth = getSidebarWidth();
+        // 限制移动范围
         targetTranslate = Math.min(0, Math.max(-sidebarWidth, targetTranslate));
         setSidebarTranslate(targetTranslate);
         
-        // 更新时间和位置用于速度计算
-        const currentTime = Date.now();
-        if (currentTime - lastMoveTime > 16) { // 限制更新频率，大约60fps
-          lastMoveTime = currentTime;
-          lastMoveX = moveX;
-        }
-        
-        // === 动态遮罩透明度 ===
+        // 更新遮罩层透明度
         if (mask) {
           const percent = 1 + (targetTranslate / sidebarWidth); // 0~1
-          mask.style.opacity = percent.toFixed(3);
+          mask.style.opacity = Math.max(0, Math.min(1, percent)).toFixed(3);
         }
+        
+        // 阻止默认行为
         e.preventDefault();
       }
     }, { passive: false });
   
-    // 新增：touchend 事件处理
+    // 触摸结束事件
     document.addEventListener('touchend', function(e) {
       if (!dragging || !isMobile()) return;
       
@@ -378,9 +424,7 @@ window.addEventListener('DOMContentLoaded', function() {
         const endX = e.changedTouches[0].clientX;
         const endTime = Date.now();
         const deltaX = endX - startX;
-        
-        // 计算滑动速度
-        const velocity = calculateVelocity(endTime, endX, lastMoveTime, lastMoveX);
+        const deltaTime = endTime - startTime;
         
         // 获取当前位置
         const currentTransform = sidebar.style.transform;
@@ -388,8 +432,8 @@ window.addEventListener('DOMContentLoaded', function() {
           ? parseFloat(currentTransform.match(/translateX\(([^)]+)px\)/)?.[1] || 0)
           : (wasCollapsed ? -getSidebarWidth() : 0);
         
-        // 根据速度和位置决定最终状态
-        finalizeDrawerState(currentTranslate, velocity, deltaX);
+        // 使用改进的判断逻辑
+        finalizeDrawerState(currentTranslate, deltaX, deltaTime);
       } else {
         // 没有移动，恢复原状态
         resetSidebarTransition();
@@ -442,7 +486,6 @@ window.addEventListener('DOMContentLoaded', function() {
     syncMaskState();
   
   })();
-
 // ========== 初始化入口 ==========
 function init() {
     // 配置Markdown解析器
@@ -612,7 +655,6 @@ function switchNote(noteId) {
     if (contentArea) contentArea.classList.remove('editing-mode');
     if (contentArea) contentArea.scrollTop = 0;
     // --- 移动端优化：切换笔记后自动关闭侧边栏 ---
-    const sidebar = document.querySelector('.notes-list-panel');
     if (window.innerWidth <= 768 && sidebar && !sidebar.classList.contains('drawer-collapsed')) {
         sidebar.classList.add('drawer-collapsed');
     }
@@ -866,7 +908,6 @@ function setupEventListeners() {
         if (editBtn) editBtn.click();
         noteTitleEl.focus();
         // 移动端新建笔记后自动收回侧栏
-        const sidebar = document.querySelector('.notes-list-panel');
         if (window.innerWidth <= 768 && sidebar && !sidebar.classList.contains('drawer-collapsed')) {
             sidebar.classList.add('drawer-collapsed');
         }
