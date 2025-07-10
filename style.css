@@ -1091,8 +1091,8 @@ pre, code {
     overflow-y: auto !important;
   }
   .markdown-body, #notePreview, #noteEditor {
-    padding-left: 0.45em;
-    padding-right: 0.45em;
+    padding-left: 0.1em;
+    padding-right: 0.1em;
   }
   .mobile-drawer-hint {
     position: fixed;
