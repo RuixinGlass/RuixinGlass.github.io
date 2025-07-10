@@ -93,10 +93,7 @@ window.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // 4. 移动端侧栏滑动手势
-
-
-    // ========== 旧版全屏滑动抽拉逻辑 ==========
+    // 4. 旧版移动端侧栏滑动手势逻辑
     /*
     let startX = 0;
     let startY = 0;
@@ -963,11 +960,28 @@ function setupEventListeners() {
                     window.addEventListener('resize', ensureCursorVisible);
                 }
             }
-            // 始终以当前textarea内容为准
-            cmEditor.setValue(noteEditorEl.value);
-            cmEditor.getWrapperElement().style.display = 'block';
-            if(contentArea) contentArea.classList.add('editing-mode');
-        } else {
+        // 始终以当前textarea内容为准
+        cmEditor.setValue(noteEditorEl.value);
+        cmEditor.getWrapperElement().style.display = 'block';
+        if(contentArea) contentArea.classList.add('editing-mode');
+
+        // ===================================================
+        // ===========   改善光标问题的核心代码   ===========
+        // ===================================================
+        // 使用 setTimeout 将操作推迟到下一个事件循环
+        // 确保编辑器在 DOM 中已完全渲染并可见
+        setTimeout(() => {
+            // 1. 强制刷新编辑器，使其重新计算布局
+            cmEditor.refresh(); 
+            // 2. 显式地将焦点设置到编辑器上
+            cmEditor.focus();
+            // 3. (可选但推荐) 将光标移动到文档末尾，提供一个明确的初始位置
+            // 如果你希望光标在开头，可以使用 {line: 0, ch: 0}
+            cmEditor.setCursor(cmEditor.lineCount(), 0); 
+        }, 0);
+        // ===================================================
+
+    } else {
             // 始终以当前cmEditor内容为准
             noteEditorEl.value = cmEditor.getValue();
             cmEditor.getWrapperElement().style.display = 'none';
@@ -1071,49 +1085,6 @@ function setupEventListeners() {
                 cloudSyncStatus.textContent = '拉取失败：' + err.message;
             }
         });
-    }
-
-    // 移动端菜单逻辑
-    if (mobileMenuBtn && mobileMenuDropdown) {
-        // 确保菜单初始隐藏
-        mobileMenuDropdown.style.display = 'none';
-        let menuOpen = false;
-        // 显示/隐藏菜单
-        mobileMenuBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            menuOpen = !menuOpen;
-            mobileMenuDropdown.style.display = menuOpen ? 'block' : 'none';
-        });
-        // 点击空白处关闭菜单
-        document.addEventListener('click', (e) => {
-            if (menuOpen) {
-                if (!mobileMenuDropdown.contains(e.target) && e.target !== mobileMenuBtn) {
-                    mobileMenuDropdown.style.display = 'none';
-                    menuOpen = false;
-                }
-            }
-        });
-        // 菜单按钮事件绑定
-        document.getElementById('mobile-new-note').onclick = () => {
-            mobileMenuDropdown.style.display = 'none';
-            menuOpen = false;
-            document.getElementById('new-note-btn')?.click();
-        };
-        document.getElementById('mobile-upload-cloud').onclick = () => {
-            mobileMenuDropdown.style.display = 'none';
-            menuOpen = false;
-            document.getElementById('upload-cloud-btn')?.click();
-        };
-        document.getElementById('mobile-download-cloud').onclick = () => {
-            mobileMenuDropdown.style.display = 'none';
-            menuOpen = false;
-            document.getElementById('download-cloud-btn')?.click();
-        };
-        document.getElementById('mobile-more').onclick = () => {
-            mobileMenuDropdown.style.display = 'none';
-            menuOpen = false;
-            document.getElementById('more-btn')?.click();
-        };
     }
 
     // 单篇笔记导出功能
