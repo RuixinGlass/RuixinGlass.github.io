@@ -1076,7 +1076,7 @@ pre, code {
     /* 让 content-area 自身撑满 note-main-panel 的剩余空间 */
     flex: 1;
     /* 防止 content-area 自身出现滚动条，滚动应在编辑器内部 */
-    overflow: hidden;
+    /*overflow: hidden;*/
     background: #f8f8f5;
     transition: background 0.2s;
   }
