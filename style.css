@@ -1055,7 +1055,7 @@ pre, code {
   }
   .note-meta {
     flex: 0 0 auto;
-    font-size: 0.98em;
+    font-size: 0.75em;
     color: var(--accent-color);
     font-weight: 500;
     margin-right: 0.5em;
