@@ -27,7 +27,8 @@ const urlsToCache = [
   'https://cdn.jsdelivr.net/npm/mathjax@3/es5/output/chtml/fonts/woff-v2/MathJax_Size1-Regular.woff2',
   'https://cdn.jsdelivr.net/npm/mathjax@3/es5/output/chtml/fonts/woff-v2/MathJax_Script-Regular.woff2',
   'https://cdn.jsdelivr.net/npm/mathjax@3/es5/output/chtml/fonts/woff-v2/MathJax_Fraktur-Regular.woff2',
-  'https://cdn.jsdelivr.net/npm/mathjax@3/es5/output/chtml/fonts/woff-v2/MathJax_Caligraphic-Bold.woff2'
+  'https://cdn.jsdelivr.net/npm/mathjax@3/es5/output/chtml/fonts/woff-v2/MathJax_Caligraphic-Bold.woff2',
+  'https://cdn.jsdelivr.net/npm/turndown@7.1.2/dist/turndown.min.js'
 ];
 
 // 安装时预缓存核心资源

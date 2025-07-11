@@ -1160,7 +1160,7 @@ function setupEventListeners() {
             importModal.classList.add('hidden');
             const input = document.createElement('input');
             input.type = 'file';
-            input.accept = '.md';
+            input.accept = '.md,.html';
             input.onchange = async () => {
                 if (input.files.length) await importFromFiles([input.files[0]]);
                 renderNotesList();
@@ -1175,7 +1175,7 @@ function setupEventListeners() {
             importModal.classList.add('hidden');
             const input = document.createElement('input');
             input.type = 'file';
-            input.accept = '.md';
+            input.accept = '.md,.html';
             input.multiple = true;
             input.webkitdirectory = true;
             input.onchange = async () => {
@@ -1195,6 +1195,22 @@ function setupEventListeners() {
             input.accept = '.zip';
             input.onchange = async () => {
                 if (input.files.length) await importFromZip(input.files[0]);
+                renderNotesList();
+                showToast('导入完成');
+            };
+            input.click();
+        };
+    }
+    // HTML导入
+    const importHtmlBtn = document.getElementById('importHtmlBtn');
+    if (importHtmlBtn) {
+        importHtmlBtn.onclick = () => {
+            importModal.classList.add('hidden');
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.html';
+            input.onchange = async () => {
+                if (input.files.length) await importFromFiles([input.files[0]]);
                 renderNotesList();
                 showToast('导入完成');
             };
@@ -1248,7 +1264,14 @@ async function fetchFromGist(token, gistId) {
     const result = await res.json();
     const file = result.files['notes-data.json'];
     if (!file) throw new Error('云端未找到 notes-data.json 文件');
-    return JSON.parse(file.content);
+    let content = file.content;
+    if (file.truncated && file.raw_url) {
+        // 重新 fetch 全量内容，不加 token
+        const rawRes = await fetch(file.raw_url);
+        if (!rawRes.ok) throw new Error('拉取大文件失败: ' + rawRes.status);
+        content = await rawRes.text();
+    }
+    return JSON.parse(content);
 }
 
 // ========== 标签与 front matter 工具 ==========
@@ -1344,14 +1367,40 @@ async function importFromZip(zipFile) {
 
 async function importFromFiles(files) {
     for (const file of files) {
-        let content = file.content || await file.text();
-        // 解析front matter，提取title
+        let content = file.content || (file.text ? await file.text() : '');
         let title = '未命名笔记';
-        const fm = content.match(/^---([\s\S]*?)---/);
-        if (fm) {
-            const titleMatch = fm[1].match(/title:\s*(.*)/);
-            if (titleMatch) {
-                title = titleMatch[1].replace(/^['"]|['"]$/g, '').trim() || title;
+        let isHtml = false;
+        // 判断文件类型
+        if (file.name && file.name.toLowerCase().endsWith('.html')) {
+            isHtml = true;
+        }
+        if (isHtml) {
+            // 用 turndown 转换 HTML 为 Markdown
+            if (typeof TurndownService === 'undefined') {
+                await loadScript('https://cdn.jsdelivr.net/npm/turndown@7.1.2/dist/turndown.min.js');
+            }
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(content, 'text/html');
+            // 提取 <title>
+            const titleEl = doc.querySelector('title');
+            if (titleEl && titleEl.textContent.trim()) {
+                title = titleEl.textContent.trim();
+            } else if (file.name) {
+                title = file.name.replace(/\.[^.]+$/, '');
+            }
+            // 转换正文
+            const turndownService = new TurndownService();
+            // 只取 <body> 内容
+            const bodyHtml = doc.body ? doc.body.innerHTML : content;
+            content = turndownService.turndown(bodyHtml);
+        } else {
+            // 解析front matter，提取title
+            const fm = content.match(/^---([\s\S]*?)---/);
+            if (fm) {
+                const titleMatch = fm[1].match(/title:\s*(.*)/);
+                if (titleMatch) {
+                    title = titleMatch[1].replace(/^['"]|['"]$/g, '').trim() || title;
+                }
             }
         }
         // 生成唯一id
