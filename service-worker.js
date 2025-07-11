@@ -1,12 +1,15 @@
 const CACHE_NAME = 'note-app-cache-v2';
 const urlsToCache = [
   '/',
+  './',
   '/index.html',
   '/style.css',
   '/app.js',
   '/manifest.json',
   '/icon-192.png',
+  '/icon-256.png',
   '/icon-512.png',
+  '/offline.html',
   'https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap',
   'https://fonts.gstatic.com',
   'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css',
@@ -17,7 +20,14 @@ const urlsToCache = [
   'https://cdn.jsdelivr.net/npm/@codemirror/theme-one-dark@6.2.0/theme.min.css',
   'https://cdn.jsdelivr.net/npm/codemirror@5.65.16/lib/codemirror.min.css',
   'https://cdn.jsdelivr.net/npm/codemirror@5.65.16/lib/codemirror.min.js',
-  'https://cdn.jsdelivr.net/npm/codemirror@5.65.16/mode/markdown/markdown.min.js'
+  'https://cdn.jsdelivr.net/npm/codemirror@5.65.16/mode/markdown/markdown.min.js',
+  'https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js',
+  'https://cdn.jsdelivr.net/npm/mathjax@3/es5/output/chtml/fonts/woff-v2/MathJax_Main-Regular.woff2',
+  'https://cdn.jsdelivr.net/npm/mathjax@3/es5/output/chtml/fonts/woff-v2/MathJax_Math-Italic.woff2',
+  'https://cdn.jsdelivr.net/npm/mathjax@3/es5/output/chtml/fonts/woff-v2/MathJax_Size1-Regular.woff2',
+  'https://cdn.jsdelivr.net/npm/mathjax@3/es5/output/chtml/fonts/woff-v2/MathJax_Script-Regular.woff2',
+  'https://cdn.jsdelivr.net/npm/mathjax@3/es5/output/chtml/fonts/woff-v2/MathJax_Fraktur-Regular.woff2',
+  'https://cdn.jsdelivr.net/npm/mathjax@3/es5/output/chtml/fonts/woff-v2/MathJax_Caligraphic-Bold.woff2'
 ];
 
 // 安装时预缓存核心资源
@@ -25,7 +35,14 @@ self.addEventListener('install', function(event) {
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then(function(cache) {
-        return cache.addAll(urlsToCache);
+        return Promise.all(urlsToCache.map(url =>
+          fetch(url).then(resp => {
+            if (!resp.ok) throw new Error(url + ' failed: ' + resp.status);
+            return cache.put(url, resp);
+          }).catch(err => {
+            console.error('Cache failed:', url, err);
+          })
+        ));
       })
   );
 });
@@ -60,7 +77,7 @@ self.addEventListener('fetch', function(event) {
         });
       }).catch(function() {
         // 断网且缓存没有时，可选返回自定义离线页面
-        // return caches.match('/offline.html');
+        return caches.match('/offline.html');
       });
     })
   );
