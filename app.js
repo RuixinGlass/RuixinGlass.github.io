@@ -981,6 +981,8 @@ function setupEventListeners() {
         }, 0);
         // ===================================================
 
+        // 新增：进入编辑模式时显示工具条
+        onEditModeChange(true);
     } else {
             // 始终以当前cmEditor内容为准
             noteEditorEl.value = cmEditor.getValue();
@@ -993,6 +995,8 @@ function setupEventListeners() {
                 saveVersion();
             }
             if(contentArea) contentArea.classList.remove('editing-mode');
+            // 新增：退出编辑模式时隐藏工具条
+            onEditModeChange(false);
         }
         // 强制恢复主页面滚动条位置
         setTimeout(() => {
@@ -1381,3 +1385,31 @@ function saveVersion() {
     showToast('已自动保存并生成新版本');
     saveToLocalStorage();
 }
+
+// ========== 移动端浮动工具条逻辑 ==========
+function isMobile() {
+  return window.innerWidth <= 768;
+}
+function showMobileToolbar(show) {
+  const toolbar = document.getElementById('mobileToolbar');
+  if (!toolbar) return;
+  toolbar.style.display = (show && isMobile()) ? 'flex' : 'none';
+}
+function onEditModeChange(isEditing) {
+  showMobileToolbar(isEditing);
+}
+// 绑定按钮事件
+window.addEventListener('DOMContentLoaded', function() {
+  const btnUndo = document.getElementById('btnUndo');
+  const btnRedo = document.getElementById('btnRedo');
+  const btnPreview = document.getElementById('btnPreview');
+  if (btnUndo) btnUndo.onclick = function() { if (window.cmEditor) cmEditor.undo(); };
+  if (btnRedo) btnRedo.onclick = function() { if (window.cmEditor) cmEditor.redo(); };
+  if (btnPreview) btnPreview.onclick = function() { if (window.editBtn) editBtn.click(); };
+});
+window.addEventListener('resize', function() {
+  // 只在编辑模式下自适应
+  const isEditing = document.querySelector('.content-area.editing-mode');
+  showMobileToolbar(!!isEditing);
+});
+// 在切换编辑/预览模式的地方调用 onEditModeChange(true/false)

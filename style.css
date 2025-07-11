@@ -1999,4 +1999,46 @@ code {
   margin-bottom: 0;
 }
 
+/* ========== 移动端浮动工具条 ========== */
+.mobile-toolbar {
+  display: none;
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1000;
+  background: var(--content-bg);
+  border-top: 1.5px solid var(--border-color);
+  box-shadow: var(--shadow-sm);
+  padding: var(--spacing-sm) 0 env(safe-area-inset-bottom, 0);
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  font-family: var(--font-sans);
+  border-radius: 0 0 var(--radius-md) var(--radius-md);
+  transition: transform 0.2s;
+}
+.mobile-toolbar button {
+  background: none;
+  border: none;
+  font-size: 1.6em;
+  color: var(--accent-color);
+  padding: var(--spacing-xs) var(--spacing-lg);
+  outline: none;
+  cursor: pointer;
+  border-radius: var(--radius-md);
+  transition: color 0.18s, background 0.18s;
+  font-family: var(--font-sans);
+}
+.mobile-toolbar button:active,
+.mobile-toolbar button:focus {
+  color: var(--accent-hover);
+  background: var(--accent-light);
+}
+@media (max-width: 768px) {
+  .mobile-toolbar {
+    display: flex;
+  }
+}
+
 
