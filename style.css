@@ -1588,14 +1588,13 @@ body, #noteEditor, .markdown-body, input, button, textarea {
   font-family: var(--font-sans) !important;
 }
 
-.note-title-row.shrink {
+.note-header.shrink .note-title-row {
   max-height: 0 !important;
   opacity: 0 !important;
   pointer-events: none !important;
   margin: 0 !important;
   padding: 0 !important;
 }
-
 
 /* ========== 标题行独立上边距 ========== */
 .note-title-row {

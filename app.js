@@ -185,13 +185,12 @@ window.addEventListener('DOMContentLoaded', function() {
 
     const noteHeader = document.querySelector('.note-header');
     const mainContent = document.querySelector('.note-main-panel') || window;
-    const noteTitleRow = document.querySelector('.note-title-row');
     (mainContent || window).addEventListener('scroll', function() {
         const scrollTop = mainContent.scrollTop || window.scrollY || 0;
         if (scrollTop > 60) {
-            noteTitleRow.classList.add('shrink');
+            noteHeader.classList.add('shrink');
         } else {
-            noteTitleRow.classList.remove('shrink');
+            noteHeader.classList.remove('shrink');
         }
     });
 });
