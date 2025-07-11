@@ -1998,7 +1998,6 @@ code {
 
 /* ========== 移动端浮动工具条 ========== */
 .mobile-toolbar {
-  display: none;
   position: fixed;
   left: 0;
   right: 0;
@@ -2056,6 +2055,14 @@ code {
 .mobile-toolbar button:hover i,
 .mobile-toolbar button:focus i {
   color: var(--accent-color) !important;
+}
+@media (min-width: 769px) {
+  .mobile-toolbar {
+    display: none !important;
+  }
+  .content-area.editing-mode ~ .mobile-toolbar {
+    display: none !important;
+  }
 }
 @media (max-width: 768px) {
   .mobile-toolbar {
