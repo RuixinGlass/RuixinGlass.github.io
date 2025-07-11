@@ -1083,12 +1083,12 @@ pre, code {
 
   .content-area.editing-mode .CodeMirror {
     /* 让 CodeMirror 组件占满其父容器（content-area）*/
-    height: 100% !important;
+    /*height: 100% !important;*/
   }
 
   .content-area.editing-mode .CodeMirror-scroll {
     /* 这是关键：覆盖 CodeMirror 默认的 auto-height 样式（overflow: visible），改为让编辑器内部可以独立滚动。*/
-    overflow-y: auto !important;
+    /*overflow-y: auto !important;*/
   }
   .markdown-body, #notePreview, #noteEditor {
     padding-left: 0.1em;
@@ -1216,7 +1216,7 @@ pre, code {
   }
   .note-meta {
     flex: 0 0 auto;
-    font-size: 1em;
+    font-size: 0.9em;
     color: var(--accent-color);
     font-weight: 500;
     margin-right: 0;
@@ -1773,7 +1773,7 @@ code {
   box-shadow: 0 4px 16px rgba(139,92,246,0.10);
 }
 .import-all-btn i {
-  color: inherit;
+  color: var(--icon-default);
   font-size: 1.25rem;
   transition: color 0.18s;
 }
