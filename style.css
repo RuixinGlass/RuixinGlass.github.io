@@ -1081,15 +1081,15 @@ pre, code {
     transition: background 0.2s;
   }
 
-  .content-area.editing-mode .CodeMirror {
+  /*.content-area.editing-mode .CodeMirror {*/
     /* 让 CodeMirror 组件占满其父容器（content-area）*/
-    /*height: 100% !important;*/
-  }
+    /*height: 100% !important;
+  }*/
 
-  .content-area.editing-mode .CodeMirror-scroll {
+  /*.content-area.editing-mode .CodeMirror-scroll {*/
     /* 这是关键：覆盖 CodeMirror 默认的 auto-height 样式（overflow: visible），改为让编辑器内部可以独立滚动。*/
-    /*overflow-y: auto !important;*/
-  }
+    /*overflow-y: auto !important;
+  }*/
   .markdown-body, #notePreview, #noteEditor {
     padding-left: 0.1em;
     padding-right: 0.1em;
@@ -1957,9 +1957,6 @@ code {
   /* 只为需要的属性添加过渡动画 */
   transition: background 0.2s, color 0.2s, border 0.2s, box-shadow 0.2s;
 }
-#addNoteBtn {
-  /* 只显示加号图标，隐藏所有文字 */
-}
 #addNoteBtn .btn-text,
 #addNoteBtn span,
 #addNoteBtn::after {
@@ -2067,6 +2064,11 @@ code {
   .content-area.editing-mode ~ .mobile-toolbar {
     display: flex;
   }
+}
+
+/* MathJax块级公式字体缩小 */
+.MathJax {
+  font-size: 100% !important;
 }
 
 

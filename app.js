@@ -350,7 +350,16 @@ window.addEventListener('DOMContentLoaded', function() {
     document.addEventListener('touchstart', function(e) {
       if (!isMobile()) return;
       if (e.touches.length !== 1) return;
-      
+      // 检查是否在代码块、公式块内
+      const target = e.target;
+      if (
+        target.closest('pre') ||
+        target.closest('code') ||
+        target.closest('.katex-display')
+      ) {
+        e._isContentScroll = true;
+        return;
+      }
       dragging = true;
       startTime = Date.now();
       startX = e.touches[0].clientX;
@@ -367,6 +376,7 @@ window.addEventListener('DOMContentLoaded', function() {
   
     // 触摸移动事件
     document.addEventListener('touchmove', function(e) {
+      if (e._isContentScroll) return;
       if (!dragging || !isMobile()) return;
       
       const moveX = e.touches[0].clientX;
@@ -673,6 +683,10 @@ function renderMarkdown(content) {
     // 安全过滤（可选）
     html = DOMPurify.sanitize(html);
     notePreviewEl.innerHTML = html;
+    // 新增：渲染公式
+    if (window.MathJax && window.MathJax.typesetPromise) {
+      MathJax.typesetPromise([notePreviewEl]);
+    }
 }
 
 // ========== 版本控制与历史 ==========
