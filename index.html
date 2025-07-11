@@ -122,6 +122,12 @@
                     <div id="notePreview" class="markdown-body"></div>
                     <textarea id="noteEditor" placeholder="在此输入笔记内容...&#10;&#10;支持 Markdown 语法：&#10;# 标题&#10;**粗体** *斜体*&#10;- 列表项&#10;```代码块```" aria-label="笔记内容编辑区" tabindex="0"></textarea>
                 </div>
+                <!-- 移动端浮动工具条，仅编辑模式下显示 -->
+                <div class="mobile-toolbar" id="mobileToolbar">
+                  <button id="btnUndo" title="撤回"><i class="fas fa-undo"></i></button>
+                  <button id="btnRedo" title="重做"><i class="fas fa-redo"></i></button>
+                  <button id="btnPreview" title="预览"><i class="fas fa-eye"></i></button>
+                </div>
             </div>
         </div>
     </div>
@@ -179,11 +185,5 @@
         });
       }
     </script>
-    <!-- 移动端浮动工具条，仅编辑模式下显示 -->
-    <div class="mobile-toolbar" id="mobileToolbar">
-      <button id="btnUndo" title="撤回"><i class="fas fa-undo"></i></button>
-      <button id="btnRedo" title="重做"><i class="fas fa-redo"></i></button>
-      <button id="btnPreview" title="预览"><i class="fas fa-eye"></i></button>
-    </div>
 </body>
 </html>

@@ -585,6 +585,11 @@ function renderNotesList() {
         // 切换笔记事件
         li.onclick = () => {
             if (notesData.currentNoteId !== noteId) {
+                // 新增：编辑模式下切换笔记时自动保存当前笔记
+                const contentArea = document.querySelector('.content-area');
+                if (contentArea && contentArea.classList.contains('editing-mode')) {
+                    saveVersion();
+                }
                 switchNote(noteId);
             }
         };
@@ -1403,8 +1408,24 @@ window.addEventListener('DOMContentLoaded', function() {
   const btnUndo = document.getElementById('btnUndo');
   const btnRedo = document.getElementById('btnRedo');
   const btnPreview = document.getElementById('btnPreview');
-  if (btnUndo) btnUndo.onclick = function() { if (window.cmEditor) cmEditor.undo(); };
-  if (btnRedo) btnRedo.onclick = function() { if (window.cmEditor) cmEditor.redo(); };
+  if (btnUndo) btnUndo.onclick = function() { 
+    console.log('撤回按钮被点击');
+    console.log('cmEditor 是否存在:', !!cmEditor);
+    if (cmEditor) {
+        console.log('尝试执行撤回');
+        cmEditor.focus();
+        setTimeout(() => cmEditor.undo(), 0);
+    }
+};
+if (btnRedo) btnRedo.onclick = function() { 
+    console.log('重做按钮被点击');
+    console.log('cmEditor 是否存在:', !!cmEditor);
+    if (cmEditor) {
+        console.log('尝试执行重做');
+        cmEditor.focus();
+        setTimeout(() => cmEditor.redo(), 0);
+    }
+};
   if (btnPreview) btnPreview.onclick = function() { if (window.editBtn) editBtn.click(); };
 });
 window.addEventListener('resize', function() {

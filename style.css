@@ -431,7 +431,7 @@ pre, code {
 }
 
 .word-count {
-  font-size: 0.875rem;
+  font-size: 0.75rem;
   color: var(--text-muted);
   font-weight: 500;
 }
@@ -992,7 +992,7 @@ pre, code {
   .note-actions button {
     min-width: 0;
     padding: 0.6em 0.6em;
-    font-size: 1.2em;
+    font-size: 1em;
     background: none !important;
     border: none !important;
     box-shadow: none !important;
@@ -1012,7 +1012,7 @@ pre, code {
     border: none !important;
     box-shadow: none !important;
     color: var(--accent-color);
-    font-size: 1.2em;
+    font-size: 1em;
     padding: 0.6em 0.6em;
     margin-left: 0.2em;
     border-radius: 50%;
@@ -2008,35 +2008,63 @@ code {
   bottom: 0;
   z-index: 1000;
   background: var(--content-bg);
-  border-top: 1.5px solid var(--border-color);
+  border-top: 1px solid var(--border-color);
   box-shadow: var(--shadow-sm);
-  padding: var(--spacing-sm) 0 env(safe-area-inset-bottom, 0);
+  padding: 0 var(--spacing-md) env(safe-area-inset-bottom, 0);
+  height: 48px;
+  min-height: 0;
+  max-height: 56px;
   display: flex;
   justify-content: space-around;
   align-items: center;
   font-family: var(--font-sans);
   border-radius: 0 0 var(--radius-md) var(--radius-md);
   transition: transform 0.2s;
+  gap: var(--spacing-xs);
+}
+.content-area.editing-mode ~ .mobile-toolbar {
+  display: flex;
 }
 .mobile-toolbar button {
+  /* 复用.note-actions button样式 */
   background: none;
-  border: none;
-  font-size: 1.6em;
   color: var(--accent-color);
-  padding: var(--spacing-xs) var(--spacing-lg);
-  outline: none;
-  cursor: pointer;
+  border: 1.2px solid var(--content-bg);
   border-radius: var(--radius-md);
-  transition: color 0.18s, background 0.18s;
-  font-family: var(--font-sans);
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 1em;
+  padding: var(--spacing-xs) var(--spacing-md);
+  margin: 0;
+  box-shadow: none;
+  display: flex;
+  align-items: center;
+  gap: 0.3em;
+  transition: background 0.18s, color 0.18s, border 0.18s;
 }
-.mobile-toolbar button:active,
+.mobile-toolbar button:hover,
 .mobile-toolbar button:focus {
+  background: var(--content-bg);
   color: var(--accent-hover);
-  background: var(--accent-light);
+  border-color: var(--text-light);
+}
+.mobile-toolbar button:active {
+  background: var(--content-bg);
+  color: var(--accent-hover);
+}
+.mobile-toolbar button i {
+  color: var(--icon-default) !important;
+  transition: color 0.18s;
+}
+.mobile-toolbar button:hover i,
+.mobile-toolbar button:focus i {
+  color: var(--accent-color) !important;
 }
 @media (max-width: 768px) {
   .mobile-toolbar {
+    display: none;
+  }
+  .content-area.editing-mode ~ .mobile-toolbar {
     display: flex;
   }
 }
