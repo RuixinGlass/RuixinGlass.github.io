@@ -350,12 +350,12 @@ window.addEventListener('DOMContentLoaded', function() {
     document.addEventListener('touchstart', function(e) {
       if (!isMobile()) return;
       if (e.touches.length !== 1) return;
-      // 检查是否在代码块、公式块内
       const target = e.target;
       if (
         target.closest('pre') ||
         target.closest('code') ||
-        target.closest('.katex-display')
+        target.closest('.tags-list') ||
+        target.closest('.MathJax_Display')
       ) {
         e._isContentScroll = true;
         return;

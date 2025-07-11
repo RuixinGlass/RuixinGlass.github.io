@@ -2071,4 +2071,31 @@ code {
   font-size: 100% !important;
 }
 
+/* 横向滑动标签列表及右侧渐变遮罩 */
+.tags-list-wrapper {
+  position: relative;
+  overflow: hidden;
+  width: 100%;
+}
+.tags-list {
+  display: flex;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  overflow-y: hidden;
+  white-space: nowrap;
+  max-width: 100%;
+  scrollbar-width: none;
+}
+.tags-list::-webkit-scrollbar {
+  display: none;
+}
+.tags-list-wrapper::after {
+  content: "";
+  position: absolute;
+  right: 0; top: 0; bottom: 0;
+  width: 2.5em;
+  pointer-events: none;
+  background: linear-gradient(to right, transparent, var(--primary-bg));
+}
+
 
