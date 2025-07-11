@@ -1080,7 +1080,7 @@ function setupEventListeners() {
             try {
                 const notesData = JSON.parse(localStorage.getItem('notesData') || '{}');
                 const newGistId = await uploadToGist(token, gistId, notesData);
-                cloudSyncStatus.textContent = '上传成功！Gist ID: ' + newGistId;
+                cloudSyncStatus.innerHTML = '上传成功！<br>Gist ID: ' + newGistId;
                 cloudGistIdInput.value = newGistId;
             } catch (err) {
                 cloudSyncStatus.textContent = '上传失败：' + err.message;

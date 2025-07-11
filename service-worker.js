@@ -65,6 +65,10 @@ self.addEventListener('activate', function(event) {
 
 // 拦截所有请求，缓存优先，网络兜底，动态缓存新资源
 self.addEventListener('fetch', function(event) {
+  // 不缓存 gist raw_url，始终走网络
+  if (event.request.url.includes('gist.githubusercontent.com')) {
+    return; // 让浏览器自己处理，不走缓存
+  }
   event.respondWith(
     caches.match(event.request).then(function(response) {
       if (response) {

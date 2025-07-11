@@ -1521,10 +1521,19 @@ pre, code {
   margin-top: 0.5em;
 }
 .cloud-sync-status {
-  min-height: 1.5em;
-  color: var(--accent-color);
-  font-size: 0.98em;
-  margin-top: 0.5em;
+  max-width: 100%;
+  word-break: break-all;
+  white-space: pre-line;
+  margin-top: 8px;
+  padding: 8px 12px;
+  background: #f6f8fa;
+  border-radius: 6px;
+  font-size: 15px;
+  line-height: 1.6;
+  box-sizing: border-box;
+  color: #333;
+  text-align: left;
+  overflow-wrap: break-word;
 }
 
 
