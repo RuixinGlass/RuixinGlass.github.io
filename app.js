@@ -1099,11 +1099,15 @@ function setupEventListeners() {
             }
             cloudSyncStatus.textContent = '正在拉取云端数据...';
             try {
+                // 先清空本地数据，确保完全覆盖
+                localStorage.removeItem('notesData');
+                
                 const data = await fetchFromGist(token, gistId);
                 localStorage.setItem('notesData', JSON.stringify(data));
                 cloudSyncStatus.textContent = '拉取成功，已覆盖本地数据！';
-                // 刷新页面数据
-                location.reload();
+                
+                // 强制刷新页面，确保获取最新数据
+                location.reload(true);
             } catch (err) {
                 cloudSyncStatus.textContent = '拉取失败：' + err.message;
             }
@@ -1238,14 +1242,18 @@ async function uploadToGist(token, gistId, data) {
         url += '/' + gistId;
         method = 'PATCH';
     }
+    
+    // 强制不缓存，确保上传到最新状态
     const res = await fetch(url, {
         method,
         headers: {
             'Authorization': 'token ' + token,
             'Accept': 'application/vnd.github+json'
         },
-        body: JSON.stringify(body)
+        body: JSON.stringify(body),
+        cache: 'no-store'  // 强制绕过浏览器缓存
     });
+    
     if (!res.ok) throw new Error('Gist同步失败: ' + res.status);
     const result = await res.json();
     return result.id;
@@ -1254,23 +1262,33 @@ async function uploadToGist(token, gistId, data) {
 async function fetchFromGist(token, gistId) {
     if (!gistId) throw new Error('请填写 Gist ID');
     const url = `https://api.github.com/gists/${gistId}`;
+    
+    // 强制不缓存，确保获取最新数据
     const res = await fetch(url, {
         headers: {
             'Authorization': 'token ' + token,
             'Accept': 'application/vnd.github+json'
-        }
+        },
+        cache: 'no-store'  // 强制绕过浏览器缓存
     });
+    
     if (!res.ok) throw new Error('拉取失败: ' + res.status);
     const result = await res.json();
     const file = result.files['notes-data.json'];
     if (!file) throw new Error('云端未找到 notes-data.json 文件');
+    
     let content = file.content;
     if (file.truncated && file.raw_url) {
-        // 重新 fetch 全量内容，不加 token
-        const rawRes = await fetch(file.raw_url);
+        // 重新 fetch 全量内容，强制不缓存并加时间戳绕过CDN缓存
+        const timestamp = Date.now();
+        const rawUrlWithTimestamp = `${file.raw_url}?t=${timestamp}`;
+        const rawRes = await fetch(rawUrlWithTimestamp, {
+            cache: 'no-store'  // 强制绕过浏览器缓存
+        });
         if (!rawRes.ok) throw new Error('拉取大文件失败: ' + rawRes.status);
         content = await rawRes.text();
     }
+    
     return JSON.parse(content);
 }
 
