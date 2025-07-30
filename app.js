@@ -1089,7 +1089,7 @@ function setupEventListeners() {
     }
 
     // 云同步拉取Gist
-    if (cloudSyncPullBtn) {
+    /*if (cloudSyncPullBtn) {
         cloudSyncPullBtn.addEventListener('click', async () => {
             const token = cloudTokenInput.value.trim();
             const gistId = cloudGistIdInput.value.trim();
@@ -1135,6 +1135,40 @@ function setupEventListeners() {
                 location.reload(true);
             } catch (err) {
                 cloudSyncStatus.textContent = '拉取失败：' + err.message;
+            }
+        });
+    }*/
+
+    if (cloudSyncPullBtn) {
+        cloudSyncPullBtn.addEventListener('click', async () => {
+            const token = cloudTokenInput.value.trim();
+            const gistId = cloudGistIdInput.value.trim();
+            if (!token || !gistId) {
+                cloudSyncStatus.textContent = '请填写 Token 和 Gist ID';
+                return;
+            }
+            cloudSyncStatus.textContent = '正在拉取云端数据...';
+            try {
+                // 修正：移除这行，避免在拉取失败时丢失所有本地数据！
+                // localStorage.removeItem('notesData'); 
+    
+                // 调用修正后的 fetchFromGist
+                const data = await fetchFromGist(token, gistId);
+    
+                // 只有在数据成功拉取并解析后，才覆盖本地存储
+                localStorage.setItem('notesData', JSON.stringify(data));
+                cloudSyncStatus.textContent = '拉取成功，已覆盖本地数据！即将刷新...';
+    
+                // 成功后强制刷新页面以应用新数据
+                // location.reload(true) 已经可以强制重新加载，无需手动清理 PWA 缓存
+                // 手动清理缓存可能会在某些情况下带来副作用
+                setTimeout(() => {
+                    location.reload(true);
+                }, 1500); // 延迟刷新，让用户看到成功信息
+    
+            } catch (err) {
+                cloudSyncStatus.textContent = '拉取失败：' + err.message;
+                // 因为我们没有预先删除本地数据，所以即使拉取失败，用户的数据也是安全的。
             }
         });
     }
@@ -1284,7 +1318,7 @@ async function uploadToGist(token, gistId, data) {
     return result.id;
 }
 
-async function fetchFromGist(token, gistId) {
+/*async function fetchFromGist(token, gistId) {
     if (!gistId) throw new Error('请填写 Gist ID');
     
     // 添加随机参数和时间戳，彻底绕过所有缓存
@@ -1328,6 +1362,42 @@ async function fetchFromGist(token, gistId) {
         content = await rawRes.text();
     }
     
+    return JSON.parse(content);
+}*/
+
+async function fetchFromGist(token, gistId) {
+    if (!gistId) throw new Error('请填写 Gist ID');
+
+    // 修正：移除所有无效的缓存破坏查询参数，使用纯净的API URL
+    const url = `https://api.github.com/gists/${gistId}`;
+
+    // 修正：移除冗余的缓存控制头，只保留 cache: 'no-store' 选项
+    // 这是告诉浏览器不要缓存此fetch请求的现代且标准的方法。
+    const res = await fetch(url, {
+        headers: {
+            'Authorization': 'token ' + token,
+            'Accept': 'application/vnd.github+json'
+        },
+        cache: 'no-store' // 强制绕过浏览器缓存
+    });
+
+    if (!res.ok) throw new Error('拉取失败，状态码: ' + res.status);
+    const result = await res.json();
+    const file = result.files['notes-data.json'];
+    if (!file) throw new Error('云端未找到 notes-data.json 文件');
+
+    let content = file.content;
+    if (file.truncated && file.raw_url) {
+        // 如果文件被截断，从 raw_url 获取完整内容
+        // 修正：同样移除 raw_url 后面无效的查询参数
+        const rawRes = await fetch(file.raw_url, {
+            // raw_url 的请求不需要 token，但同样要禁用缓存
+            cache: 'no-store'
+        });
+        if (!rawRes.ok) throw new Error('拉取大文件失败: ' + rawRes.status);
+        content = await rawRes.text();
+    }
+
     return JSON.parse(content);
 }
 
