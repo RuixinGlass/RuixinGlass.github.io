@@ -1102,9 +1102,34 @@ function setupEventListeners() {
                 // 先清空本地数据，确保完全覆盖
                 localStorage.removeItem('notesData');
                 
+                // 强制更新Service Worker缓存
+                if ('serviceWorker' in navigator) {
+                    try {
+                        const registration = await navigator.serviceWorker.getRegistration();
+                        if (registration) {
+                            await registration.update();
+                        }
+                    } catch (e) {
+                        console.log('Service Worker更新失败:', e);
+                    }
+                }
+                
                 const data = await fetchFromGist(token, gistId);
                 localStorage.setItem('notesData', JSON.stringify(data));
                 cloudSyncStatus.textContent = '拉取成功，已覆盖本地数据！';
+                
+                // 强制刷新页面，确保获取最新数据
+                // 只清除可能影响云同步的缓存，保留核心资源缓存
+                if ('caches' in window) {
+                    try {
+                        const cacheNames = await caches.keys();
+                        // 只删除包含 'note-app-cache' 的缓存，保留其他缓存
+                        const appCaches = cacheNames.filter(name => name.includes('note-app-cache'));
+                        await Promise.all(appCaches.map(name => caches.delete(name)));
+                    } catch (e) {
+                        console.log('清除缓存失败:', e);
+                    }
+                }
                 
                 // 强制刷新页面，确保获取最新数据
                 location.reload(true);
@@ -1261,15 +1286,23 @@ async function uploadToGist(token, gistId, data) {
 
 async function fetchFromGist(token, gistId) {
     if (!gistId) throw new Error('请填写 Gist ID');
-    const url = `https://api.github.com/gists/${gistId}`;
+    
+    // 添加随机参数和时间戳，彻底绕过所有缓存
+    const timestamp = Date.now();
+    const random = Math.random().toString(36).substring(7);
+    const url = `https://api.github.com/gists/${gistId}?t=${timestamp}&r=${random}`;
     
     // 强制不缓存，确保获取最新数据
     const res = await fetch(url, {
         headers: {
             'Authorization': 'token ' + token,
-            'Accept': 'application/vnd.github+json'
+            'Accept': 'application/vnd.github+json',
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache',
+            'Expires': '0'
         },
-        cache: 'no-store'  // 强制绕过浏览器缓存
+        cache: 'no-store',  // 强制绕过浏览器缓存
+        mode: 'cors'
     });
     
     if (!res.ok) throw new Error('拉取失败: ' + res.status);
@@ -1280,9 +1313,15 @@ async function fetchFromGist(token, gistId) {
     let content = file.content;
     if (file.truncated && file.raw_url) {
         // 重新 fetch 全量内容，强制不缓存并加时间戳绕过CDN缓存
-        const timestamp = Date.now();
-        const rawUrlWithTimestamp = `${file.raw_url}?t=${timestamp}`;
+        const rawTimestamp = Date.now();
+        const rawRandom = Math.random().toString(36).substring(7);
+        const rawUrlWithTimestamp = `${file.raw_url}?t=${rawTimestamp}&r=${rawRandom}`;
         const rawRes = await fetch(rawUrlWithTimestamp, {
+            headers: {
+                'Cache-Control': 'no-cache, no-store, must-revalidate',
+                'Pragma': 'no-cache',
+                'Expires': '0'
+            },
             cache: 'no-store'  // 强制绕过浏览器缓存
         });
         if (!rawRes.ok) throw new Error('拉取大文件失败: ' + rawRes.status);
