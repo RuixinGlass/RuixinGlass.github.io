@@ -2120,4 +2120,26 @@ code {
   background: linear-gradient(to right, transparent, var(--primary-bg));
 }
 
+/* ========== 移动端编辑模式滚动与遮挡最终修复 ========== */
+
+@media (max-width: 768px) {
+  /*
+    目标：
+    1. 为底部的浮动工具栏预留出空间，防止遮挡文字。
+    2. 稳定滚动行为，消除抖动。
+
+    策略：
+    当进入移动端编辑模式时，给 CodeMirror 编辑器自身增加一个
+    足够大的底部外边距(margin-bottom)。
+    这会把整个滚动内容的“底部”向上推，从而完美解决问题。
+  */
+
+  .content-area.editing-mode .CodeMirror {
+    /* 工具栏高度为 48px，我们设置一个稍大的 60px 外边距，
+      这样最后一行文字离工具栏会有一点舒适的距离。
+    */
+    margin-bottom: 60px;
+  }
+}
+
 
