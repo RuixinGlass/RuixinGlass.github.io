@@ -171,12 +171,25 @@ class HTTPSRepoConnector {
             
             // 检查远程分支
             const branches = execSync('git branch -r', { encoding: 'utf8' });
-            if (branches.includes('origin/main') || branches.includes('origin/master')) {
+            const currentBranch = this.getCurrentBranch();
+            
+            if (branches.includes(`origin/${currentBranch}`) || branches.includes('origin/main') || branches.includes('origin/master')) {
                 const shouldPull = await this.question('发现远程分支，是否先拉取现有内容？(y/n，默认: y): ') || 'y';
                 if (shouldPull.toLowerCase() === 'y') {
                     console.log('🔄 拉取现有内容...');
-                    execSync('git pull origin main --allow-unrelated-histories', { stdio: 'inherit' });
-                    console.log('✅ 拉取成功');
+                    // 尝试拉取当前分支，如果失败则尝试main或master
+                    try {
+                        execSync(`git pull origin ${currentBranch} --allow-unrelated-histories`, { stdio: 'inherit' });
+                        console.log('✅ 拉取成功');
+                    } catch (error) {
+                        console.log('ℹ️ 拉取当前分支失败，尝试其他分支...');
+                        if (branches.includes('origin/main')) {
+                            execSync('git pull origin main --allow-unrelated-histories', { stdio: 'inherit' });
+                        } else if (branches.includes('origin/master')) {
+                            execSync('git pull origin master --allow-unrelated-histories', { stdio: 'inherit' });
+                        }
+                        console.log('✅ 拉取成功');
+                    }
                 }
             }
             return true;
@@ -215,6 +228,28 @@ class HTTPSRepoConnector {
     }
 
     /**
+     * 获取当前分支名
+     */
+    getCurrentBranch() {
+        try {
+            const branch = execSync('git branch --show-current', { encoding: 'utf8' });
+            return branch.trim();
+        } catch (error) {
+            // 如果上面的命令失败，尝试另一种方法
+            try {
+                const branches = execSync('git branch', { encoding: 'utf8' });
+                const currentBranch = branches.split('\n').find(line => line.startsWith('*'));
+                if (currentBranch) {
+                    return currentBranch.replace('* ', '').trim();
+                }
+            } catch (e) {
+                // 如果都失败，返回默认值
+            }
+            return 'master'; // 默认分支名
+        }
+    }
+
+    /**
      * 推送到远程仓库
      */
     async pushToRemote() {
@@ -226,7 +261,11 @@ class HTTPSRepoConnector {
             
             await this.question('\n准备好后，按回车键继续...');
             
-            execSync('git push -u origin main', { stdio: 'inherit' });
+            // 获取当前分支名
+            const currentBranch = this.getCurrentBranch();
+            console.log(`📋 检测到当前分支: ${currentBranch}`);
+            
+            execSync(`git push -u origin ${currentBranch}`, { stdio: 'inherit' });
             
             console.log('✅ 推送成功！');
             return true;
@@ -236,6 +275,7 @@ class HTTPSRepoConnector {
             console.log('1. Personal Access Token是否正确');
             console.log('2. 仓库URL是否正确');
             console.log('3. 网络连接是否正常');
+            console.log('4. 分支名是否正确');
             return false;
         }
     }
