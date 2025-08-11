@@ -2,6 +2,9 @@
 // 严谨的版本控制笔记系统 - 主逻辑入口
 // =====================
 
+// ========== 防止重复加载的脚本缓存 ==========
+const loadedScripts = new Set();
+
 // ========== 数据结构 ==========
 // 笔记数据存储结构
 const notesData = {
@@ -22,6 +25,8 @@ const versionsListEl = document.getElementById('versionsList');
 const closeVersionsBtn = document.getElementById('closeVersionsBtn');
 const wordCountEl = document.getElementById('wordCount');
 const searchInputEl = document.getElementById('searchInput');
+
+
 // 云同步相关
 const cloudSyncBtn = document.getElementById('cloudSyncBtn');
 const cloudSyncModal = document.getElementById('cloudSyncModal');
@@ -889,8 +894,7 @@ function switchNote(noteId) {
     
     // --- 修复2：先销毁 Codemirror，再设置 textarea value，避免内容继承 ---
     if (cmEditor) {
-        cmEditor.toTextArea(); // 恢复 textarea
-        cmEditor.getWrapperElement().remove(); // 移除 Codemirror DOM
+        cmEditor.toTextArea(); // 恢复 textarea，这是唯一需要的清理方法
         cmEditor = null;
     }
     
@@ -1205,6 +1209,9 @@ function showSaveStatus(status) {
 
 // ========== 事件监听器归类 ==========
 function setupEventListeners() {
+    // 设置移动端工具栏事件
+    setupMobileToolbarEvents();
+    
     // 更新事件监听器（约380行）
     versionsListEl.addEventListener('click', (e) => {
         if (e.target.classList.contains('version-diff')) {
@@ -1259,13 +1266,16 @@ function setupEventListeners() {
     editBtn.addEventListener('click', () => {
         const mainPanel = document.querySelector('.note-main-panel');
         const scrollTop = mainPanel.scrollTop;
-        const isEditing = cmEditor && cmEditor.getWrapperElement().style.display !== 'none';
+        const isEditing = cmEditor && cmEditor.getWrapperElement() && cmEditor.getWrapperElement().style.display !== 'none';
         const contentArea = document.querySelector('.content-area');
+        
         if (!isEditing) {
+            // 进入编辑模式
             noteEditorEl.style.display = 'none';
             notePreviewEl.style.display = 'none';
             noteEditorEl.classList.add('editing');
             editBtn.innerHTML = '<i class="fas fa-eye"></i><span class="btn-text"> 预览笔记</span>';
+            
             if (!cmEditor) {
                 // 统一架构+移动端降级配置
                 const cmConfig = {
@@ -1284,7 +1294,8 @@ function setupEventListeners() {
                     cmConfig.cursorScrollMargin = 60;
                 }
                 cmEditor = CodeMirror.fromTextArea(noteEditorEl, cmConfig);
-                cmEditor.setSize('100%', '100%'); // <-- 修改于此
+                cmEditor.setSize('100%', '100%');
+                
                 // 移动端同步机制
                 if (isMobile()) {
                     const syncToTextarea = () => {
@@ -1294,6 +1305,7 @@ function setupEventListeners() {
                     cmEditor.on('blur', syncToTextarea);
                     cmEditor.on('scroll', syncToTextarea);
                     cmEditor.on('touchend', syncToTextarea);
+                    
                     // 光标体验优化
                     const ensureCursorVisible = () => {
                         cmEditor.refresh();
@@ -1310,44 +1322,49 @@ function setupEventListeners() {
                     window.setupCodeMirrorAutoSave();
                 }
             }
-        // 始终以当前textarea内容为准
-        cmEditor.setValue(noteEditorEl.value);
-        cmEditor.getWrapperElement().style.display = 'block';
-        if(contentArea) contentArea.classList.add('editing-mode');
+            
+            // 始终以当前textarea内容为准
+            cmEditor.setValue(noteEditorEl.value);
+            cmEditor.getWrapperElement().style.display = 'block';
+            if(contentArea) contentArea.classList.add('editing-mode');
 
-        // ===================================================
-        // ===========   改善光标问题的核心代码   ===========
-        // ===================================================
-        // 使用 setTimeout 将操作推迟到下一个事件循环
-        // 确保编辑器在 DOM 中已完全渲染并可见
-        setTimeout(() => {
-            // 1. 强制刷新编辑器，使其重新计算布局
-            cmEditor.refresh(); 
-            // 2. 显式地将焦点设置到编辑器上
-            cmEditor.focus();
-            // 3. (可选但推荐) 将光标移动到文档末尾，提供一个明确的初始位置
-            // 如果你希望光标在开头，可以使用 {line: 0, ch: 0}
-            cmEditor.setCursor(cmEditor.lineCount(), 0); 
-        }, 0);
-        // ===================================================
+            // ===================================================
+            // ===========   改善光标问题的核心代码   ===========
+            // ===================================================
+            // 使用 setTimeout 将操作推迟到下一个事件循环
+            // 确保编辑器在 DOM 中已完全渲染并可见
+            setTimeout(() => {
+                // 1. 强制刷新编辑器，使其重新计算布局
+                cmEditor.refresh(); 
+                // 2. 显式地将焦点设置到编辑器上
+                cmEditor.focus();
+                // 3. (可选但推荐) 将光标移动到文档末尾，提供一个明确的初始位置
+                // 如果你希望光标在开头，可以使用 {line: 0, ch: 0}
+                cmEditor.setCursor(cmEditor.lineCount(), 0); 
+            }, 0);
+            // ===================================================
 
-        // 新增：进入编辑模式时显示工具条
-        onEditModeChange(true);
-    } else {
+            // 新增：进入编辑模式时显示工具条
+            onEditModeChange(true);
+        } else {
+            // 退出编辑模式，进入预览模式
             // 始终以当前cmEditor内容为准
             noteEditorEl.value = cmEditor.getValue();
             cmEditor.getWrapperElement().style.display = 'none';
             notePreviewEl.style.display = 'block';
             noteEditorEl.classList.remove('editing');
             editBtn.innerHTML = '<i class="fas fa-edit"></i><span class="btn-text"> 编辑笔记</span>';
+            
             if (notesData.currentNoteId &&
                 notesData.notes[notesData.currentNoteId].content !== noteEditorEl.value) {
                 saveVersion();
             }
+            
             if(contentArea) contentArea.classList.remove('editing-mode');
             // 新增：退出编辑模式时隐藏工具条
             onEditModeChange(false);
         }
+        
         // 强制恢复主页面滚动条位置
         setTimeout(() => {
             mainPanel.scrollTop = scrollTop;
@@ -1763,7 +1780,7 @@ function setupEventListeners() {
 }
 
 // ========== 启动应用 ==========
-init();
+// init(); // 注释掉提前的调用，等待 DOMContentLoaded 事件
 
 // ========== 云同步相关 ==========
 async function uploadToGist(token, gistId, data) {
@@ -2022,10 +2039,18 @@ async function importFromFiles(files) {
 }
 
 function loadScript(src) {
+    // 如果已经加载过，直接返回
+    if (loadedScripts.has(src)) {
+        return Promise.resolve();
+    }
+    
     return new Promise((resolve, reject) => {
         const s = document.createElement('script');
         s.src = src;
-        s.onload = resolve;
+        s.onload = () => {
+            loadedScripts.add(src);
+            resolve();
+        };
         s.onerror = reject;
         document.head.appendChild(s);
     });
@@ -2089,41 +2114,54 @@ function showMobileToolbar(show) {
 function onEditModeChange(isEditing) {
   showMobileToolbar(isEditing);
 }
-// 绑定按钮事件
-window.addEventListener('DOMContentLoaded', function() {
+// 移动端工具栏按钮事件绑定
+function setupMobileToolbarEvents() {
   const btnUndo = document.getElementById('btnUndo');
   const btnRedo = document.getElementById('btnRedo');
   const btnPreview = document.getElementById('btnPreview');
-  if (btnUndo) btnUndo.onclick = function() { 
-    console.log('撤回按钮被点击');
-    console.log('cmEditor 是否存在:', !!cmEditor);
-    if (cmEditor) {
-        console.log('尝试执行撤回');
-        cmEditor.focus();
-        setTimeout(() => cmEditor.undo(), 0);
-    }
-};
-if (btnRedo) btnRedo.onclick = function() { 
-    console.log('重做按钮被点击');
-    console.log('cmEditor 是否存在:', !!cmEditor);
-    if (cmEditor) {
-        console.log('尝试执行重做');
-        cmEditor.focus();
-        setTimeout(() => cmEditor.redo(), 0);
-    }
-};
-  if (btnPreview) btnPreview.onclick = function() { if (window.editBtn) editBtn.click(); };
-});
+  
+  if (btnUndo) {
+    btnUndo.onclick = function() { 
+      console.log('撤回按钮被点击');
+      console.log('cmEditor 是否存在:', !!cmEditor);
+      if (cmEditor) {
+          console.log('尝试执行撤回');
+          cmEditor.focus();
+          setTimeout(() => cmEditor.undo(), 0);
+      }
+    };
+  }
+  
+  if (btnRedo) {
+    btnRedo.onclick = function() { 
+      console.log('重做按钮被点击');
+      console.log('cmEditor 是否存在:', !!cmEditor);
+      if (cmEditor) {
+          console.log('尝试执行重做');
+          cmEditor.focus();
+          setTimeout(() => cmEditor.redo(), 0);
+      }
+    };
+  }
+  
+  if (btnPreview) {
+    btnPreview.onclick = function() { 
+      if (editBtn) editBtn.click(); 
+    };
+  }
+}
+
+// 窗口大小变化时更新移动端工具栏显示状态
 window.addEventListener('resize', function() {
   // 只在编辑模式下自适应
   const isEditing = document.querySelector('.content-area.editing-mode');
   showMobileToolbar(!!isEditing);
 });
-// 在切换编辑/预览模式的地方调用 onEditModeChange(true/false)
 
 // ========== 应用初始化 ==========
 // 确保在DOM加载完成后初始化应用
 document.addEventListener('DOMContentLoaded', function() {
+    // 初始化主应用
     init();
 });
 
