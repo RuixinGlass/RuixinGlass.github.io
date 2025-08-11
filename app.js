@@ -499,35 +499,36 @@ window.addEventListener('DOMContentLoaded', function() {
   
   })();
 // ========== 初始化入口 ==========
-function init() {
+async function init() {
     // ========== 初始化更新检测和通知 ==========
     initUpdateDetection();
     
-    // ========== 加载高性能存储模块 ==========
-    loadScript('indexeddb-storage.js').then(() => {
+    // ========== 加载高性能存储模块（使用 await 等待完成） ==========
+    try {
+        await loadScript('indexeddb-storage.js');
         console.log('IndexedDB 存储模块加载成功');
-        // 尝试迁移数据
+        // 尝试迁移数据（也使用 await 等待）
         if (window.migrateFromLocalStorage) {
-            window.migrateFromLocalStorage().then(success => {
-                if (success) {
-                    console.log('数据迁移完成，开始使用 IndexedDB');
-                }
-            });
+            const success = await window.migrateFromLocalStorage();
+            if (success) {
+                console.log('数据迁移完成，开始使用 IndexedDB');
+            }
         }
-    }).catch(error => {
+    } catch (error) {
         console.warn('IndexedDB 存储模块加载失败，使用 localStorage:', error);
-    });
+    }
     
     // ========== 加载性能优化模块 ==========
-    loadScript('performance-optimizer.js').then(() => {
+    try {
+        await loadScript('performance-optimizer.js');
         console.log('性能优化模块加载成功');
         // 初始化性能优化
         if (window.initPerformanceOptimization) {
             window.initPerformanceOptimization();
         }
-    }).catch(error => {
+    } catch (error) {
         console.warn('性能优化模块加载失败:', error);
-    });
+    }
 
     // 配置Markdown解析器
     marked.setOptions({
@@ -537,16 +538,21 @@ function init() {
         headerIds: false
     });
 
-    loadFromLocalStorage();
+    // ========== 关键的初始化流程 ==========
+    // 1. 从存储中加载数据到内存
+    await loadFromLocalStorage();
     
-    // ========== 数据完整性检查 ==========
+    // 2. 检查并修复数据
     checkAndRepairData();
     
-    renderNotesList();
-    setupEventListeners();
+    // 3. 将笔记列表渲染到页面上
+    renderNotesList(); 
     
-    // 如果没有当前笔记，则显示提示
-    if (!notesData.currentNoteId) {
+    // 4. 在列表渲染完毕后，切换到当前笔记（这将触发高亮和滚动）
+    if (notesData.currentNoteId && notesData.notes[notesData.currentNoteId]) {
+        switchNote(notesData.currentNoteId);
+    } else {
+        // 如果没有当前笔记，则显示欢迎提示
         notePreviewEl.innerHTML = `
             <div class="empty-state">
                 <h3><i class="fas fa-book-open"></i> 欢迎使用笔记系统</h3>
@@ -554,6 +560,9 @@ function init() {
             </div>
         `;
     }
+
+    // 5. 最后，设置所有事件监听器
+    setupEventListeners();
 
     // 默认隐藏编辑区，显示预览区
     noteEditorEl.style.display = 'none';
@@ -634,14 +643,22 @@ function init() {
 // ========== 本地存储 ==========
 async function loadFromLocalStorage() {
     try {
+        let dataLoaded = false;
         // 优先使用 IndexedDB
-        if (window.indexedDBStorage && window.indexedDBStorage.isInitialized) {
-            const data = await window.indexedDBStorage.loadData();
-            notesData.currentNoteId = data.currentNoteId;
-            notesData.notes = data.notes;
-            console.log('从 IndexedDB 加载数据成功');
-        } else {
-            // 回退到 localStorage
+        if (window.indexedDBStorage) {
+            try {
+                const data = await window.indexedDBStorage.loadData();
+                notesData.currentNoteId = data.currentNoteId;
+                notesData.notes = data.notes;
+                console.log('从 IndexedDB 加载数据成功');
+                dataLoaded = true;
+            } catch (indexedDBError) {
+                console.warn('IndexedDB 加载失败，回退到 localStorage:', indexedDBError);
+            }
+        }
+        
+        // 如果 IndexedDB 失败，回退到 localStorage
+        if (!dataLoaded) {
             const savedData = localStorage.getItem('notesData');
             if (savedData) {
                 const parsedData = JSON.parse(savedData);
@@ -649,11 +666,6 @@ async function loadFromLocalStorage() {
                 notesData.notes = parsedData.notes;
                 console.log('从 localStorage 加载数据成功');
             }
-        }
-        
-        // 如果有当前笔记，切换到该笔记
-        if (notesData.currentNoteId) {
-            switchNote(notesData.currentNoteId);
         }
     } catch (error) {
         console.error('数据加载失败:', error);
@@ -676,29 +688,36 @@ async function loadFromLocalStorage() {
             notesData.notes = {};
         }
     }
+
+
 }
 
 async function saveToLocalStorage() {
     try {
         // 优先使用 IndexedDB
-        if (window.indexedDBStorage && window.indexedDBStorage.isInitialized) {
-            await window.indexedDBStorage.saveData(notesData);
-            // 同时创建备份
-            await window.indexedDBStorage.backupData(notesData);
-            console.log('IndexedDB 数据保存成功，笔记数量:', Object.keys(notesData.notes).length);
-        } else {
-            // 回退到 localStorage
-            // 主存储
-            localStorage.setItem('notesData', JSON.stringify(notesData));
-            
-            // 备份存储（防止主存储损坏）
-            localStorage.setItem('notesData_backup', JSON.stringify(notesData));
-            
-            // 时间戳记录
-            localStorage.setItem('notesData_timestamp', new Date().toISOString());
-            
-            console.log('localStorage 数据保存成功，笔记数量:', Object.keys(notesData.notes).length);
+        if (window.indexedDBStorage) {
+            try {
+                await window.indexedDBStorage.saveData(notesData);
+                // 同时创建备份
+                await window.indexedDBStorage.backupData(notesData);
+                console.log('IndexedDB 数据保存成功，笔记数量:', Object.keys(notesData.notes).length);
+                return;
+            } catch (indexedDBError) {
+                console.warn('IndexedDB 保存失败，回退到 localStorage:', indexedDBError);
+            }
         }
+        
+        // 回退到 localStorage
+        // 主存储
+        localStorage.setItem('notesData', JSON.stringify(notesData));
+        
+        // 备份存储（防止主存储损坏）
+        localStorage.setItem('notesData_backup', JSON.stringify(notesData));
+        
+        // 时间戳记录
+        localStorage.setItem('notesData_timestamp', new Date().toISOString());
+        
+        console.log('localStorage 数据保存成功，笔记数量:', Object.keys(notesData.notes).length);
     } catch (error) {
         console.error('保存数据失败:', error);
         // 尝试清理存储空间并重试
@@ -1646,26 +1665,27 @@ function setupEventListeners() {
             }
             cloudSyncStatus.textContent = '正在拉取云端数据...';
             try {
-                // 修正：移除这行，避免在拉取失败时丢失所有本地数据！
-                // localStorage.removeItem('notesData'); 
-    
-                // 调用修正后的 fetchFromGist
                 const data = await fetchFromGist(token, gistId);
-    
-                // 只有在数据成功拉取并解析后，才覆盖本地存储
-                localStorage.setItem('notesData', JSON.stringify(data));
-                cloudSyncStatus.textContent = '拉取成功，已覆盖本地数据！即将刷新...';
-    
+
+                // 修正：将数据直接写入 IndexedDB
+                if (window.indexedDBStorage) {
+                    await window.indexedDBStorage.saveData(data);
+                    // 为保险起见，再次清理 localStorage
+                    localStorage.removeItem('notesData');
+                    cloudSyncStatus.textContent = '拉取成功，已覆盖本地数据！即将刷新...';
+                } else {
+                    // 如果 IndexedDB 不可用，才回退到 localStorage
+                    localStorage.setItem('notesData', JSON.stringify(data));
+                    cloudSyncStatus.textContent = '拉取成功（使用localStorage），即将刷新...';
+                }
+
                 // 成功后强制刷新页面以应用新数据
-                // location.reload(true) 已经可以强制重新加载，无需手动清理 PWA 缓存
-                // 手动清理缓存可能会在某些情况下带来副作用
                 setTimeout(() => {
                     location.reload(true);
                 }, 1500); // 延迟刷新，让用户看到成功信息
-    
+
             } catch (err) {
                 cloudSyncStatus.textContent = '拉取失败：' + err.message;
-                // 因为我们没有预先删除本地数据，所以即使拉取失败，用户的数据也是安全的。
             }
         });
     }

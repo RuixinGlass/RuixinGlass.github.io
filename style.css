@@ -96,17 +96,20 @@ pre, code {
 }
 
 /* ========== 侧边栏 ========== */
+/* 新的侧边栏布局 */
 .notes-list-panel {
   width: 320px;
   background: var(--sidebar-bg);
   border-right: 1.5px solid var(--border-color);
-  padding: 0;
   box-shadow: var(--shadow-lg);
   z-index: 10;
   position: relative;
-  overflow-y: auto;
-  overflow-x: hidden;
   transition: all var(--transition-normal);
+  /* 使用 Flexbox 来管理内部布局 */
+  display: flex;
+  flex-direction: column;
+  /* 让侧边栏本身不滚动 */
+  overflow: hidden;
 }
 
 .notes-list-panel::before {
@@ -1976,13 +1979,16 @@ code {
   font-size: 0 !important;
   content: none !important;
 }
-.notes-list-panel { overflow: unset !important; }
+
+/* 侧边栏的滚动容器 */
 .notes-container {
-  background:var(--primary-bg);
-  padding-top: 1em;
-  padding-bottom: 10.0em;
+  /* 让这个容器占据所有剩余空间 */
+  flex: 1;
+  /* 让这个容器独立滚动 */
   overflow-y: auto;
-  height: calc(100vh - 120px);
+  background: var(--primary-bg);
+  /* padding-bottom 用于给滚动留出一些底部空间 */
+  padding-bottom: 2em;
 }
 #searchInput.search-input {
   width: 100%;

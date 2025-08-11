@@ -304,6 +304,11 @@ async function migrateFromLocalStorage() {
             const data = JSON.parse(savedData);
             await window.indexedDBStorage.saveData(data);
             console.log('数据从 localStorage 迁移到 IndexedDB 成功');
+            
+            // 在这里添加清理操作
+            localStorage.removeItem('notesData');
+            console.log('已从 localStorage 移除旧数据，防止数据污染');
+            
             return true;
         }
     } catch (error) {
