@@ -1603,8 +1603,17 @@ function setupEventListeners() {
             }
             cloudSyncStatus.textContent = '正在上传到云端...';
             try {
-                const notesData = JSON.parse(localStorage.getItem('notesData') || '{}');
-                const newGistId = await uploadToGist(token, gistId, notesData);
+                // 【修复】从 IndexedDB 加载最新的数据
+                let dataToPush = {};
+                if (window.indexedDBStorage) {
+                    dataToPush = await window.indexedDBStorage.loadData();
+                } else {
+                    // 保留对旧版 localStorage 的兼容（可选）
+                    dataToPush = JSON.parse(localStorage.getItem('notesData') || '{}');
+                }
+
+                // 使用从 IndexedDB 加载到的最新数据进行上传
+                const newGistId = await uploadToGist(token, gistId, dataToPush);
                 cloudSyncStatus.innerHTML = '上传成功！<br>Gist ID: ' + newGistId;
                 cloudGistIdInput.value = newGistId;
             } catch (err) {
