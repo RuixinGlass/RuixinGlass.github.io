@@ -1,4 +1,4 @@
-const CACHE_NAME = 'note-app-cache-v4'; // 更新版本号
+const CACHE_NAME = 'note-app-cache-v5'; // 更新版本号 - 修复云同步后
 const urlsToCache = [
   'index.html',
   'style.css',
@@ -107,32 +107,56 @@ self.addEventListener('message', function(event) {
 // 检查更新函数
 async function checkForUpdate() {
   try {
-    // 检查主页面是否有更新
-    const response = await fetch('/index.html', { cache: 'no-store' });
-    const newContent = await response.text();
+    // 检查多个关键文件是否有更新
+    const filesToCheck = ['/index.html', '/app.js', '/style.css'];
+    let hasUpdate = false;
     
-    // 获取当前缓存的内容
-    const cache = await caches.open(CACHE_NAME);
-    const cachedResponse = await cache.match('/index.html');
-    
-    if (cachedResponse) {
-      const cachedContent = await cachedResponse.text();
-      
-      // 简单比较内容（实际项目中可以用更精确的方法）
-      if (newContent !== cachedContent) {
-        console.log('检测到新版本');
-        // 通知所有客户端有新版本
-        const clients = await self.clients.matchAll();
-        clients.forEach(client => {
-          client.postMessage({
-            type: 'UPDATE_AVAILABLE',
-            data: {
-              message: '检测到新版本，建议先同步云端数据',
-              timestamp: new Date().toISOString()
-            }
-          });
+    for (const file of filesToCheck) {
+      try {
+        const response = await fetch(file, { 
+          cache: 'no-store',
+          headers: { 'Cache-Control': 'no-cache' }
         });
+        
+        if (!response.ok) continue;
+        
+        const newContent = await response.text();
+        const cache = await caches.open(CACHE_NAME);
+        const cachedResponse = await cache.match(file);
+        
+        if (cachedResponse) {
+          const cachedContent = await cachedResponse.text();
+          
+          // 比较内容，如果不同则标记有更新
+          if (newContent !== cachedContent) {
+            console.log(`检测到文件更新: ${file}`);
+            hasUpdate = true;
+            break; // 发现一个文件有更新就够了
+          }
+        } else {
+          // 缓存中没有这个文件，说明是新文件
+          console.log(`发现新文件: ${file}`);
+          hasUpdate = true;
+          break;
+        }
+      } catch (error) {
+        console.error(`检查文件 ${file} 失败:`, error);
       }
+    }
+    
+    if (hasUpdate) {
+      console.log('检测到新版本，通知客户端');
+      // 通知所有客户端有新版本
+      const clients = await self.clients.matchAll();
+      clients.forEach(client => {
+        client.postMessage({
+          type: 'UPDATE_AVAILABLE',
+          data: {
+            message: '检测到新版本，建议先同步云端数据',
+            timestamp: new Date().toISOString()
+          }
+        });
+      });
     }
   } catch (error) {
     console.error('检查更新失败:', error);

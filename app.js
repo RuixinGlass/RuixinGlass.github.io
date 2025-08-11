@@ -2230,7 +2230,7 @@ function initUpdateDetection() {
             .then(function(registration) {
                 console.log('Service Worker 注册成功:', registration);
                 
-                // 检查是否有更新
+                // 立即检查更新
                 registration.update();
                 
                 // 监听更新
@@ -2244,6 +2244,20 @@ function initUpdateDetection() {
                             showUpdateDialog('检测到新版本，建议先同步云端数据');
                         }
                     });
+                });
+                
+                // 定期检查更新（每5分钟检查一次）
+                setInterval(() => {
+                    console.log('定期检查更新...');
+                    registration.update();
+                }, 5 * 60 * 1000);
+                
+                // 页面可见时检查更新
+                document.addEventListener('visibilitychange', () => {
+                    if (!document.hidden) {
+                        console.log('页面变为可见，检查更新...');
+                        registration.update();
+                    }
                 });
             })
             .catch(function(error) {
