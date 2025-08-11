@@ -67,11 +67,43 @@ class HTTPSRepoConnector {
     }
 
     /**
+     * 检查现有远程仓库
+     */
+    checkExistingRemote() {
+        try {
+            const remotes = execSync('git remote -v', { encoding: 'utf8' });
+            if (remotes.includes('origin')) {
+                const originUrl = remotes.split('\n').find(line => line.includes('origin')).split('\t')[1];
+                return originUrl;
+            }
+            return null;
+        } catch (error) {
+            return null;
+        }
+    }
+
+    /**
      * 设置HTTPS远程仓库
      */
     async setHTTPSRemote() {
         try {
             console.log('🔄 设置HTTPS远程仓库...');
+            
+            // 检查是否已有远程仓库
+            const existingRemote = this.checkExistingRemote();
+            if (existingRemote) {
+                console.log(`📋 发现现有远程仓库: ${existingRemote}`);
+                const useExisting = await this.question('是否使用现有远程仓库？(y/n，默认: y): ') || 'y';
+                if (useExisting.toLowerCase() === 'y') {
+                    console.log('✅ 使用现有远程仓库');
+                    return existingRemote;
+                } else {
+                    // 删除现有远程仓库
+                    console.log('🔄 删除现有远程仓库...');
+                    execSync('git remote remove origin');
+                    console.log('✅ 现有远程仓库已删除');
+                }
+            }
             
             const useExisting = await this.question('是否使用现有仓库？(y/n，默认: y): ') || 'y';
             
