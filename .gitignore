@@ -1,0 +1,40 @@
+# =====================
+# 严谨的版本控制笔记系统 - .gitignore
+# =====================
+
+# 开发工具和脚本
+git-manager.js
+connect-https-repo.js
+setup-ssh.js
+git-manager.bat
+connect-existing-repo.js
+
+# 测试和演示文件
+真实性能对比测试.html
+性能测试演示.html
+切换笔记性能对比-修复版.html
+git-integration-demo.html
+
+# 用户配置文件目录
+%USERPROFILE%/
+
+# 系统文件
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# 编辑器文件
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# 临时文件
+*.tmp
+*.temp
+*.log
+
+# 备份文件
+*.bak
+*.backup
