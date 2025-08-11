@@ -1282,7 +1282,7 @@ function setupEventListeners() {
     });
     
     // 编辑/预览切换
-    editBtn.addEventListener('click', () => {
+    editBtn.addEventListener('click', async () => {
         const mainPanel = document.querySelector('.note-main-panel');
         const scrollTop = mainPanel.scrollTop;
         const isEditing = cmEditor && cmEditor.getWrapperElement() && cmEditor.getWrapperElement().style.display !== 'none';
@@ -1367,17 +1367,26 @@ function setupEventListeners() {
             onEditModeChange(true);
         } else {
             // 退出编辑模式，进入预览模式
-            // 始终以当前cmEditor内容为准
-            noteEditorEl.value = cmEditor.getValue();
+            const newContent = cmEditor.getValue();
+            noteEditorEl.value = newContent; // 同步textarea内容
+
+            const hasChanged = notesData.currentNoteId &&
+                notesData.notes[notesData.currentNoteId].content !== newContent;
+
+            if (hasChanged) {
+                // 内容已更改，调用保存函数。该函数内部会负责渲染。
+                await saveVersion();
+            } else if (notesData.currentNoteId) {
+                // 内容未更改，但仍需确保预览区显示的是正确内容。
+                renderMarkdown(notesData.notes[notesData.currentNoteId].content);
+            }
+
+            // --- 关键改动 ---
+            // 在确保内容已经渲染到 notePreviewEl 之后，再执行UI切换
             cmEditor.getWrapperElement().style.display = 'none';
             notePreviewEl.style.display = 'block';
             noteEditorEl.classList.remove('editing');
             editBtn.innerHTML = '<i class="fas fa-edit"></i><span class="btn-text"> 编辑笔记</span>';
-            
-            if (notesData.currentNoteId &&
-                notesData.notes[notesData.currentNoteId].content !== noteEditorEl.value) {
-                saveVersion();
-            }
             
             if(contentArea) contentArea.classList.remove('editing-mode');
             // 新增：退出编辑模式时隐藏工具条
@@ -2077,7 +2086,7 @@ function loadScript(src) {
 }
 
 // ========== 版本自动保存 ==========
-function saveVersion() {
+async function saveVersion() {
     if (!notesData.currentNoteId) return;
     const note = notesData.notes[notesData.currentNoteId];
     
@@ -2112,12 +2121,14 @@ function saveVersion() {
     note.content = currentContent;
     note.lastModified = new Date().toISOString();
     
-    // 更新UI
+    // 等待数据保存完成
+    await saveToLocalStorage();
+    
+    // 保存成功后才更新UI和提示
     renderMarkdown(currentContent);
     updateWordCount();
     renderNotesList();
     showToast('已自动保存并生成新版本');
-    saveToLocalStorage();
     
     console.log('版本保存完成，当前版本数:', note.versions.length);
 }
