@@ -1,0 +1,30 @@
+{
+  "name": "简·记",
+  "short_name": "简·记",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#fcfcfa",
+  "theme_color": "#6a7ba2",
+  "orientation": "portrait",
+  "lang": "zh-CN",
+  "description": "极简、优雅、支持版本控制和Markdown的本地笔记应用，支持PWA离线体验。",
+  "author": "严谨的版本控制笔记系统项目组",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icon-256.png",
+      "sizes": "256x256",
+      "type": "image/png"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+} 

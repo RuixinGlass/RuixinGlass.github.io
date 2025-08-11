@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Git集成演示 - 笔记应用</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: #fcfcfa;
+            color: #2c3e50;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 12px;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .demo-section {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .demo-section h2 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+            font-size: 1.8em;
+            border-bottom: 2px solid #e74c3c;
+            padding-bottom: 10px;
+        }
+
+        .git-panel {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border: 1px solid #e9ecef;
+        }
+
+        .git-status {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .branch-name {
+            background: #28a745;
+            color: white;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            font-weight: 500;
+        }
+
+        .commit-count {
+            background: #ffc107;
+            color: #212529;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            font-weight: 500;
+        }
+
+        .git-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .git-btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9em;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .git-btn.primary {
+            background: #007bff;
+            color: white;
+        }
+
+        .git-btn.primary:hover {
+            background: #0056b3;
+        }
+
+        .git-btn.secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .git-btn.secondary:hover {
+            background: #545b62;
+        }
+
+        .git-btn.success {
+            background: #28a745;
+            color: white;
+        }
+
+        .git-btn.success:hover {
+            background: #1e7e34;
+        }
+
+        .file-list {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .file-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .file-item:last-child {
+            border-bottom: none;
+        }
+
+        .file-name {
+            font-weight: 500;
+            color: #495057;
+        }
+
+        .file-status {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.8em;
+            font-weight: 500;
+        }
+
+        .status-modified {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .status-added {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+
+        .status-untracked {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .commit-form {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+            color: #495057;
+        }
+
+        .form-group input,
+        .form-group textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ced4da;
+            border-radius: 6px;
+            font-size: 0.9em;
+            font-family: inherit;
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .commit-history {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+        }
+
+        .commit-item {
+            padding: 15px;
+            border-bottom: 1px solid #e9ecef;
+            margin-bottom: 10px;
+        }
+
+        .commit-item:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+        }
+
+        .commit-hash {
+            font-family: 'JetBrains Mono', monospace;
+            color: #6c757d;
+            font-size: 0.8em;
+        }
+
+        .commit-message {
+            font-weight: 500;
+            color: #495057;
+            margin: 5px 0;
+        }
+
+        .commit-meta {
+            font-size: 0.8em;
+            color: #6c757d;
+        }
+
+        .code-block {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 6px;
+            padding: 15px;
+            margin: 15px 0;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.9em;
+            overflow-x: auto;
+        }
+
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .feature-card {
+            background: white;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .feature-icon {
+            font-size: 2em;
+            margin-bottom: 15px;
+            color: #007bff;
+        }
+
+        .feature-title {
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: #2c3e50;
+        }
+
+        .feature-desc {
+            color: #6c757d;
+            font-size: 0.9em;
+        }
+
+        .alert {
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+        }
+
+        .alert-info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+
+        .alert-warning {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+
+        @media (max-width: 768px) {
+            .git-panel {
+                flex-direction: column;
+                gap: 15px;
+            }
+
+            .git-actions {
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+
+            .feature-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚀 Git集成演示</h1>
+            <p>在笔记应用中集成Git版本管理功能</p>
+        </div>
+
+        <div class="demo-section">
+            <h2>📋 Git操作面板</h2>
+            
+            <div class="git-panel">
+                <div class="git-status">
+                    <span class="branch-name">main</span>
+                    <span class="commit-count">+3 -1</span>
+                </div>
+                <div class="git-actions">
+                    <button class="git-btn primary" onclick="showCommitForm()">📝 提交</button>
+                    <button class="git-btn success" onclick="pushToGitHub()">🚀 推送</button>
+                    <button class="git-btn secondary" onclick="pullFromGitHub()">⬇️ 拉取</button>
+                    <button class="git-btn secondary" onclick="showHistory()">📜 历史</button>
+                </div>
+            </div>
+
+            <div class="file-list">
+                <h3>📁 文件状态</h3>
+                <div class="file-item">
+                    <span class="file-name">笔记1.md</span>
+                    <span class="file-status status-modified">已修改</span>
+                </div>
+                <div class="file-item">
+                    <span class="file-name">笔记2.md</span>
+                    <span class="file-status status-added">已添加</span>
+                </div>
+                <div class="file-item">
+                    <span class="file-name">新笔记.md</span>
+                    <span class="file-status status-untracked">未跟踪</span>
+                </div>
+            </div>
+
+            <div id="commitForm" class="commit-form" style="display: none;">
+                <h3>📝 提交更改</h3>
+                <div class="form-group">
+                    <label>提交信息：</label>
+                    <textarea id="commitMessage" placeholder="请输入提交信息...">更新笔记内容</textarea>
+                </div>
+                <div class="form-group">
+                    <label>选择文件：</label>
+                    <div>
+                        <input type="checkbox" id="file1" checked> <label for="file1">笔记1.md</label><br>
+                        <input type="checkbox" id="file2" checked> <label for="file2">笔记2.md</label><br>
+                        <input type="checkbox" id="file3"> <label for="file3">新笔记.md</label>
+                    </div>
+                </div>
+                <button class="git-btn primary" onclick="commitChanges()">确认提交</button>
+                <button class="git-btn secondary" onclick="hideCommitForm()">取消</button>
+            </div>
+
+            <div id="commitHistory" class="commit-history" style="display: none;">
+                <h3>📜 提交历史</h3>
+                <div class="commit-item">
+                    <div class="commit-hash">a1b2c3d</div>
+                    <div class="commit-message">更新笔记内容和格式</div>
+                    <div class="commit-meta">2024-01-15 14:30 by 用户</div>
+                </div>
+                <div class="commit-item">
+                    <div class="commit-hash">e4f5g6h</div>
+                    <div class="commit-message">添加新笔记</div>
+                    <div class="commit-meta">2024-01-15 13:45 by 用户</div>
+                </div>
+                <div class="commit-item">
+                    <div class="commit-hash">i7j8k9l</div>
+                    <div class="commit-message">初始化项目</div>
+                    <div class="commit-meta">2024-01-15 12:00 by 用户</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="demo-section">
+            <h2>🔧 技术实现</h2>
+            
+            <div class="alert alert-info">
+                <strong>💡 实现方案：</strong> 使用 isomorphic-git 库在浏览器中实现完整的Git功能
+            </div>
+
+            <h3>📦 核心依赖</h3>
+            <div class="code-block">
+npm install isomorphic-git
+npm install @octokit/rest
+            </div>
+
+            <h3>🚀 基础Git操作</h3>
+            <div class="code-block">
+// 初始化Git仓库
+async function initGitRepo() {
+  const fs = new IndexedDBFileSystem()
+  await git.init({ fs, dir: '/notes-repo' })
+}
+
+// 添加文件到暂存区
+async function addToStaging(filePath) {
+  await git.add({ fs, dir: '/notes-repo', filepath: filePath })
+}
+
+// 提交更改
+async function commitChanges(message) {
+  const oid = await git.commit({
+    fs,
+    dir: '/notes-repo',
+    message: message,
+    author: {
+      name: 'Note App User',
+      email: 'user@example.com'
+    }
+  })
+  return oid
+}
+
+// 推送到GitHub
+async function pushToGitHub(token, repoUrl) {
+  await git.push({
+    fs,
+    dir: '/notes-repo',
+    remote: 'origin',
+    ref: 'main',
+    token: token,
+    http
+  })
+}
+            </div>
+
+            <h3>🔗 GitHub集成</h3>
+            <div class="code-block">
+// GitHub API集成
+class GitHubIntegration {
+  constructor(token) {
+    this.octokit = new Octokit({ auth: token })
+  }
+
+  async createRepo(name, description) {
+    return await this.octokit.rest.repos.createForAuthenticatedUser({
+      name: name,
+      description: description,
+      private: false,
+      auto_init: true
+    })
+  }
+
+  async getRepos() {
+    return await this.octokit.rest.repos.listForAuthenticatedUser()
+  }
+}
+            </div>
+        </div>
+
+        <div class="demo-section">
+            <h2>✨ 核心功能</h2>
+            
+            <div class="feature-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">📝</div>
+                    <div class="feature-title">版本控制</div>
+                    <div class="feature-desc">完整的Git版本管理，支持提交、分支、合并等操作</div>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">☁️</div>
+                    <div class="feature-title">云端同步</div>
+                    <div class="feature-desc">直接推送到GitHub仓库，实现云端备份和协作</div>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">📊</div>
+                    <div class="feature-title">历史追踪</div>
+                    <div class="feature-desc">查看完整的修改历史，支持版本对比和回滚</div>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🔒</div>
+                    <div class="feature-title">数据安全</div>
+                    <div class="feature-desc">本地Git仓库 + GitHub备份，多重数据保护</div>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">⚡</div>
+                    <div class="feature-title">高性能</div>
+                    <div class="feature-desc">WebAssembly实现，浏览器原生性能</div>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🌐</div>
+                    <div class="feature-title">离线工作</div>
+                    <div class="feature-desc">支持离线Git操作，网络恢复后自动同步</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="demo-section">
+            <h2>⚠️ 注意事项</h2>
+            
+            <div class="alert alert-warning">
+                <strong>🔐 安全提醒：</strong> GitHub Token需要妥善保管，建议使用环境变量或安全的存储方式
+            </div>
+
+            <ul style="padding-left: 20px; line-height: 2;">
+                <li><strong>浏览器兼容性：</strong> 需要现代浏览器支持WebAssembly</li>
+                <li><strong>存储限制：</strong> IndexedDB存储空间有限，大文件需要分块处理</li>
+                <li><strong>网络依赖：</strong> 推送/拉取操作需要网络连接</li>
+                <li><strong>性能考虑：</strong> 大量文件操作可能影响性能</li>
+                <li><strong>用户体验：</strong> 需要简化Git操作，避免复杂的工作流</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        // 演示功能
+        function showCommitForm() {
+            document.getElementById('commitForm').style.display = 'block';
+            document.getElementById('commitHistory').style.display = 'none';
+        }
+
+        function hideCommitForm() {
+            document.getElementById('commitForm').style.display = 'none';
+        }
+
+        function showHistory() {
+            document.getElementById('commitHistory').style.display = 'block';
+            document.getElementById('commitForm').style.display = 'none';
+        }
+
+        function commitChanges() {
+            const message = document.getElementById('commitMessage').value;
+            if (!message.trim()) {
+                alert('请输入提交信息');
+                return;
+            }
+            
+            alert(`提交成功！\n提交信息：${message}`);
+            hideCommitForm();
+            
+            // 更新状态显示
+            document.querySelector('.commit-count').textContent = '0 0';
+        }
+
+        function pushToGitHub() {
+            alert('🚀 推送到GitHub成功！\n您的笔记已同步到云端仓库。');
+        }
+
+        function pullFromGitHub() {
+            alert('⬇️ 从GitHub拉取成功！\n已获取最新的云端更改。');
+        }
+
+        // 模拟Git状态更新
+        setInterval(() => {
+            const count = Math.floor(Math.random() * 5);
+            if (count > 0) {
+                document.querySelector('.commit-count').textContent = `+${count} -0`;
+            }
+        }, 10000);
+    </script>
+</body>
+</html>
