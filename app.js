@@ -1587,13 +1587,13 @@ function setupEventListeners() {
             }
             cloudSyncStatus.textContent = '正在上传到云端...';
             try {
-                // 【修复】从 IndexedDB 加载最新的数据
+                // 【阶段三修复】只使用 IndexedDB，移除 localStorage 回退
                 let dataToPush = {};
                 if (window.indexedDBStorage) {
                     dataToPush = await window.indexedDBStorage.loadData();
                 } else {
-                    // 保留对旧版 localStorage 的兼容（可选）
-                    dataToPush = JSON.parse(localStorage.getItem('notesData') || '{}');
+                    // 如果 IndexedDB 不可用，给出明确错误提示
+                    throw new Error('核心存储模块 (IndexedDB) 不可用，无法读取本地数据！');
                 }
 
                 // 使用从 IndexedDB 加载到的最新数据进行上传
@@ -1669,16 +1669,15 @@ function setupEventListeners() {
             try {
                 const data = await fetchFromGist(token, gistId);
 
-                // 修正：将数据直接写入 IndexedDB
+                // 【阶段三修复】只使用 IndexedDB，移除 localStorage 回退
                 if (window.indexedDBStorage) {
                     await window.indexedDBStorage.saveData(data);
-                    // 为保险起见，再次清理 localStorage
+                    // 清理可能存在的 localStorage 旧数据
                     localStorage.removeItem('notesData');
                     cloudSyncStatus.textContent = '拉取成功，已覆盖本地数据！即将刷新...';
                 } else {
-                    // 如果 IndexedDB 不可用，才回退到 localStorage
-                    localStorage.setItem('notesData', JSON.stringify(data));
-                    cloudSyncStatus.textContent = '拉取成功（使用localStorage），即将刷新...';
+                    // 如果 IndexedDB 不可用，给出明确错误提示
+                    throw new Error('核心存储模块 (IndexedDB) 不可用，无法保存云端数据！');
                 }
 
                 // 成功后强制刷新页面以应用新数据
