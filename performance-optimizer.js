@@ -297,7 +297,10 @@ function handleNoteClick(event) {
     if (notesData.currentNoteId !== noteId) {
         const contentArea = document.querySelector('.content-area');
         if (contentArea && contentArea.classList.contains('editing-mode')) {
-            saveVersion();
+            // 异步保存，但不等待完成（避免阻塞UI）
+            saveVersion().catch(error => {
+                console.error('性能优化模块中切换笔记时自动保存失败:', error);
+            });
         }
         switchNote(noteId);
     }

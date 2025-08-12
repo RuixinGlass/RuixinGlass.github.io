@@ -441,7 +441,7 @@ window.addEventListener('DOMContentLoaded', function() {
         // 获取当前位置
         const currentTransform = sidebar.style.transform;
         const currentTranslate = currentTransform 
-          ? parseFloat(currentTransform.match(/translateX\(([^)]+)px\)/)?.[1] || 0)
+          ? parseFloat((currentTransform.match(/translateX\(([^)]+)px\)/) || [])[1] || 0)
           : (wasCollapsed ? -getSidebarWidth() : 0);
         
         // 使用改进的判断逻辑
@@ -886,7 +886,10 @@ function renderNotesList() {
                 // 新增：编辑模式下切换笔记时自动保存当前笔记
                 const contentArea = document.querySelector('.content-area');
                 if (contentArea && contentArea.classList.contains('editing-mode')) {
-                    saveVersion();
+                    // 异步保存，但不等待完成（避免阻塞UI）
+                    saveVersion().catch(error => {
+                        console.error('切换笔记时自动保存失败:', error);
+                    });
                 }
                 switchNote(noteId);
             }
@@ -1487,7 +1490,10 @@ function setupEventListeners() {
         if (e.ctrlKey && e.key === 's') {
             e.preventDefault();
             if (notesData.currentNoteId) {
-                saveVersion();
+                // 异步保存，但不等待完成（避免阻塞UI）
+                saveVersion().catch(error => {
+                    console.error('快捷键保存失败:', error);
+                });
             }
         }
         // Ctrl+Shift+D 查看存储状态

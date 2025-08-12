@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>简单IndexedDB测试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .test-item {
+            background: white;
+            margin: 10px 0;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .success { border-left: 4px solid #28a745; }
+        .error { border-left: 4px solid #dc3545; }
+        .warning { border-left: 4px solid #ffc107; }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background: #0056b3; }
+        .log {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔧 简单IndexedDB测试</h1>
+    
+    <div class="test-item">
+        <h3>测试控制</h3>
+        <button onclick="testModuleLoading()">测试模块加载</button>
+        <button onclick="testDataOperations()">测试数据操作</button>
+        <button onclick="clearLog()">清空日志</button>
+    </div>
+
+    <div class="test-item">
+        <h3>测试结果</h3>
+        <div id="results"></div>
+    </div>
+
+    <div class="test-item">
+        <h3>详细日志</h3>
+        <div id="log" class="log"></div>
+    </div>
+
+    <script>
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = `[${timestamp}] ${message}`;
+            
+            const logElement = document.getElementById('log');
+            logElement.innerHTML += logEntry + '\n';
+            logElement.scrollTop = logElement.scrollHeight;
+            
+            console.log(logEntry);
+        }
+
+        function addResult(testName, success, message) {
+            const resultsElement = document.getElementById('results');
+            const resultDiv = document.createElement('div');
+            resultDiv.className = `test-item ${success ? 'success' : 'error'}`;
+            resultDiv.innerHTML = `
+                <strong>${testName}:</strong> ${success ? '✅ 通过' : '❌ 失败'}
+                <br><small>${message}</small>
+            `;
+            resultsElement.appendChild(resultDiv);
+        }
+
+        function clearLog() {
+            document.getElementById('log').innerHTML = '';
+            document.getElementById('results').innerHTML = '';
+        }
+
+        async function testModuleLoading() {
+            log('开始测试模块加载...');
+            
+            // 检查IndexedDB支持
+            if (!window.indexedDB) {
+                addResult('IndexedDB支持', false, '浏览器不支持IndexedDB');
+                log('浏览器不支持IndexedDB', 'error');
+                return;
+            }
+            addResult('IndexedDB支持', true, '浏览器支持IndexedDB');
+            log('浏览器支持IndexedDB', 'success');
+
+            // 动态加载模块
+            try {
+                const script = document.createElement('script');
+                script.src = 'indexeddb-storage.js';
+                
+                await new Promise((resolve, reject) => {
+                    script.onload = resolve;
+                    script.onerror = reject;
+                    document.head.appendChild(script);
+                });
+                
+                log('脚本加载完成', 'success');
+                
+                // 等待模块初始化
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                
+                if (window.indexedDBStorage) {
+                    addResult('模块加载', true, 'IndexedDB存储模块加载成功');
+                    log('IndexedDB存储模块加载成功', 'success');
+                    
+                    // 测试初始化
+                    try {
+                        await window.indexedDBStorage.init();
+                        addResult('模块初始化', true, '模块初始化成功');
+                        log('模块初始化成功', 'success');
+                    } catch (error) {
+                        addResult('模块初始化', false, `初始化失败: ${error.message}`);
+                        log(`模块初始化失败: ${error.message}`, 'error');
+                    }
+                } else {
+                    addResult('模块加载', false, '模块未正确初始化');
+                    log('模块未正确初始化', 'error');
+                }
+            } catch (error) {
+                addResult('模块加载', false, `加载失败: ${error.message}`);
+                log(`模块加载失败: ${error.message}`, 'error');
+            }
+        }
+
+        async function testDataOperations() {
+            log('开始测试数据操作...');
+            
+            if (!window.indexedDBStorage) {
+                addResult('数据操作', false, 'IndexedDB模块未加载');
+                log('IndexedDB模块未加载', 'error');
+                return;
+            }
+
+            try {
+                // 测试保存数据
+                const testData = {
+                    currentNoteId: 'test_note',
+                    notes: {
+                        'test_note': {
+                            title: '测试笔记',
+                            content: '这是一个测试笔记',
+                            versions: [],
+                            lastModified: new Date().toISOString()
+                        }
+                    }
+                };
+
+                await window.indexedDBStorage.saveData(testData);
+                addResult('数据保存', true, '数据保存成功');
+                log('数据保存成功', 'success');
+
+                // 测试加载数据
+                const loadedData = await window.indexedDBStorage.loadData();
+                if (loadedData && loadedData.notes && loadedData.notes.test_note) {
+                    addResult('数据加载', true, '数据加载成功');
+                    log('数据加载成功', 'success');
+                } else {
+                    addResult('数据加载', false, '数据加载失败或数据不完整');
+                    log('数据加载失败或数据不完整', 'error');
+                }
+
+            } catch (error) {
+                addResult('数据操作', false, `操作失败: ${error.message}`);
+                log(`数据操作失败: ${error.message}`, 'error');
+            }
+        }
+
+        // 页面加载时自动测试
+        window.addEventListener('load', () => {
+            log('页面加载完成，准备测试...');
+            setTimeout(() => {
+                testModuleLoading();
+            }, 500);
+        });
+    </script>
+</body>
+</html>
