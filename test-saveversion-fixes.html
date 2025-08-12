@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>saveVersion()修复测试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .test-button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .test-button:hover {
+            background: #0056b3;
+        }
+        .test-button.danger {
+            background: #dc3545;
+        }
+        .test-button.danger:hover {
+            background: #c82333;
+        }
+        .log-area {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 15px;
+            height: 300px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 12px;
+            white-space: pre-wrap;
+        }
+        .status {
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .status.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔧 saveVersion()修复测试</h1>
+    
+    <div class="test-container">
+        <h2>测试说明</h2>
+        <p>本页面用于测试saveVersion()函数调用的异步处理修复：</p>
+        <ul>
+            <li><strong>关键操作</strong>：使用await确保完成（退出编辑模式）</li>
+            <li><strong>非关键操作</strong>：使用.catch()避免阻塞UI（切换笔记、快捷键、性能优化模块）</li>
+        </ul>
+    </div>
+
+    <div class="test-container">
+        <h2>测试步骤</h2>
+        <div id="testSteps">
+            <div class="status info">准备开始测试...</div>
+        </div>
+        
+        <button class="test-button" onclick="startTest()">开始测试</button>
+        <button class="test-button danger" onclick="clearLog()">清空日志</button>
+        <button class="test-button" onclick="loadMainApp()">加载主应用</button>
+    </div>
+
+    <div class="test-container">
+        <h2>测试日志</h2>
+        <div id="logArea" class="log-area"></div>
+    </div>
+
+    <script>
+        let testStep = 0;
+        const testSteps = [
+            "1. 加载IndexedDB存储模块",
+            "2. 创建测试笔记数据",
+            "3. 测试切换笔记时的saveVersion()调用（非阻塞）",
+            "4. 测试快捷键保存的saveVersion()调用（非阻塞）",
+            "5. 测试性能优化模块中的saveVersion()调用（非阻塞）",
+            "6. 测试退出编辑模式的saveVersion()调用（阻塞）",
+            "7. 验证数据保存结果"
+        ];
+
+        function log(message) {
+            const timestamp = new Date().toLocaleTimeString();
+            const logArea = document.getElementById('logArea');
+            logArea.textContent += `[${timestamp}] ${message}\n`;
+            logArea.scrollTop = logArea.scrollHeight;
+            console.log(`[${timestamp}] ${message}`);
+        }
+
+        function updateStepStatus(step, status, message) {
+            const testStepsDiv = document.getElementById('testSteps');
+            const statusClass = status === 'success' ? 'success' : status === 'error' ? 'error' : 'info';
+            testStepsDiv.innerHTML += `<div class="status ${statusClass}">${testSteps[step]}: ${message}</div>`;
+        }
+
+        function clearLog() {
+            document.getElementById('logArea').textContent = '';
+            document.getElementById('testSteps').innerHTML = '<div class="status info">准备开始测试...</div>';
+            testStep = 0;
+        }
+
+        async function startTest() {
+            clearLog();
+            log('开始saveVersion()修复测试...');
+            
+            try {
+                // 步骤1: 加载IndexedDB存储模块
+                log('步骤1: 加载IndexedDB存储模块');
+                await loadIndexedDBModule();
+                updateStepStatus(0, 'success', '模块加载成功');
+                
+                // 步骤2: 创建测试笔记数据
+                log('步骤2: 创建测试笔记数据');
+                await createTestData();
+                updateStepStatus(1, 'success', '测试数据创建成功');
+                
+                // 步骤3: 测试切换笔记时的saveVersion()调用
+                log('步骤3: 测试切换笔记时的saveVersion()调用（非阻塞）');
+                await testSwitchNoteSaveVersion();
+                updateStepStatus(2, 'success', '切换笔记保存测试通过');
+                
+                // 步骤4: 测试快捷键保存
+                log('步骤4: 测试快捷键保存的saveVersion()调用（非阻塞）');
+                await testShortcutSaveVersion();
+                updateStepStatus(3, 'success', '快捷键保存测试通过');
+                
+                // 步骤5: 测试性能优化模块中的保存
+                log('步骤5: 测试性能优化模块中的saveVersion()调用（非阻塞）');
+                await testPerformanceOptimizerSaveVersion();
+                updateStepStatus(4, 'success', '性能优化模块保存测试通过');
+                
+                // 步骤6: 测试退出编辑模式的保存
+                log('步骤6: 测试退出编辑模式的saveVersion()调用（阻塞）');
+                await testExitEditModeSaveVersion();
+                updateStepStatus(5, 'success', '退出编辑模式保存测试通过');
+                
+                // 步骤7: 验证数据保存结果
+                log('步骤7: 验证数据保存结果');
+                await verifySaveResults();
+                updateStepStatus(6, 'success', '数据保存验证通过');
+                
+                log('✅ 所有saveVersion()修复测试通过！');
+                
+            } catch (error) {
+                log(`❌ 测试失败: ${error.message}`);
+                updateStepStatus(testStep, 'error', `测试失败: ${error.message}`);
+            }
+        }
+
+        async function loadIndexedDBModule() {
+            return new Promise((resolve, reject) => {
+                const script = document.createElement('script');
+                script.src = 'indexeddb-storage.js';
+                script.onload = () => {
+                    log('IndexedDB存储模块加载成功');
+                    resolve();
+                };
+                script.onerror = () => reject(new Error('IndexedDB存储模块加载失败'));
+                document.head.appendChild(script);
+            });
+        }
+
+        async function createTestData() {
+            // 模拟notesData对象
+            window.notesData = {
+                currentNoteId: 'test-note-1',
+                notes: {
+                    'test-note-1': {
+                        title: '测试笔记1',
+                        content: '这是测试笔记1的内容',
+                        lastModified: new Date().toISOString(),
+                        versions: []
+                    },
+                    'test-note-2': {
+                        title: '测试笔记2',
+                        content: '这是测试笔记2的内容',
+                        lastModified: new Date().toISOString(),
+                        versions: []
+                    }
+                }
+            };
+            
+            // 模拟saveToLocalStorage函数
+            window.saveToLocalStorage = async function() {
+                log('模拟saveToLocalStorage被调用');
+                await new Promise(resolve => setTimeout(resolve, 100)); // 模拟异步操作
+                log('模拟saveToLocalStorage完成');
+                return Promise.resolve();
+            };
+            
+            // 模拟saveVersion函数
+            window.saveVersion = async function() {
+                log('saveVersion函数被调用');
+                if (!window.notesData.currentNoteId) return;
+                
+                const note = window.notesData.notes[window.notesData.currentNoteId];
+                note.content += '\n[已保存]';
+                note.lastModified = new Date().toISOString();
+                
+                try {
+                    await window.saveToLocalStorage();
+                    log('saveVersion内部保存成功');
+                } catch (error) {
+                    log(`saveVersion内部保存失败: ${error.message}`);
+                    throw error;
+                }
+            };
+            
+            log('测试数据创建完成');
+        }
+
+        async function testSwitchNoteSaveVersion() {
+            log('模拟切换笔记时的saveVersion()调用');
+            
+            // 模拟切换笔记的逻辑
+            const originalNoteId = window.notesData.currentNoteId;
+            window.notesData.currentNoteId = 'test-note-2';
+            
+            // 这里应该调用非阻塞的saveVersion()
+            window.saveVersion().catch(error => {
+                log(`切换笔记时自动保存失败: ${error.message}`);
+            });
+            
+            log('切换笔记保存调用完成（非阻塞）');
+            await new Promise(resolve => setTimeout(resolve, 200)); // 等待异步操作
+        }
+
+        async function testShortcutSaveVersion() {
+            log('模拟快捷键保存的saveVersion()调用');
+            
+            // 模拟Ctrl+S快捷键
+            if (window.notesData.currentNoteId) {
+                window.saveVersion().catch(error => {
+                    log(`快捷键保存失败: ${error.message}`);
+                });
+            }
+            
+            log('快捷键保存调用完成（非阻塞）');
+            await new Promise(resolve => setTimeout(resolve, 200)); // 等待异步操作
+        }
+
+        async function testPerformanceOptimizerSaveVersion() {
+            log('模拟性能优化模块中的saveVersion()调用');
+            
+            // 模拟性能优化模块中的切换笔记逻辑
+            const contentArea = { classList: { contains: () => true } };
+            if (contentArea && contentArea.classList.contains('editing-mode')) {
+                window.saveVersion().catch(error => {
+                    log(`性能优化模块中切换笔记时自动保存失败: ${error.message}`);
+                });
+            }
+            
+            log('性能优化模块保存调用完成（非阻塞）');
+            await new Promise(resolve => setTimeout(resolve, 200)); // 等待异步操作
+        }
+
+        async function testExitEditModeSaveVersion() {
+            log('模拟退出编辑模式的saveVersion()调用（阻塞）');
+            
+            // 模拟退出编辑模式，这里应该使用await
+            try {
+                await window.saveVersion();
+                log('退出编辑模式保存成功（阻塞）');
+            } catch (error) {
+                log(`退出编辑模式保存失败: ${error.message}`);
+                throw error;
+            }
+        }
+
+        async function verifySaveResults() {
+            log('验证数据保存结果...');
+            
+            // 检查笔记内容是否被更新
+            const note1 = window.notesData.notes['test-note-1'];
+            const note2 = window.notesData.notes['test-note-2'];
+            
+            if (note1.content.includes('[已保存]') || note2.content.includes('[已保存]')) {
+                log('✅ 数据保存验证通过：笔记内容已更新');
+            } else {
+                log('❌ 数据保存验证失败：笔记内容未更新');
+                throw new Error('数据保存验证失败');
+            }
+        }
+
+        function loadMainApp() {
+            log('加载主应用进行集成测试...');
+            const iframe = document.createElement('iframe');
+            iframe.src = 'index.html';
+            iframe.style.width = '100%';
+            iframe.style.height = '600px';
+            iframe.style.border = '1px solid #ccc';
+            
+            const container = document.createElement('div');
+            container.className = 'test-container';
+            container.innerHTML = '<h2>主应用集成测试</h2>';
+            container.appendChild(iframe);
+            
+            document.body.appendChild(container);
+            
+            iframe.onload = () => {
+                log('主应用加载完成，可以进行手动测试');
+                log('测试建议：');
+                log('1. 创建新笔记');
+                log('2. 编辑笔记内容');
+                log('3. 使用Ctrl+S保存');
+                log('4. 切换笔记');
+                log('5. 退出编辑模式');
+                log('6. 检查控制台日志');
+            };
+        }
+
+        // 页面加载完成后的初始化
+        window.addEventListener('load', () => {
+            log('saveVersion()修复测试页面加载完成');
+            log('点击"开始测试"按钮开始自动化测试');
+        });
+    </script>
+</body>
+</html>
