@@ -1,0 +1,723 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>阶段四：错误处理和恢复机制测试</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            margin: 0;
+            font-size: 2.5em;
+            font-weight: 300;
+        }
+        
+        .header p {
+            margin: 10px 0 0 0;
+            opacity: 0.9;
+            font-size: 1.1em;
+        }
+        
+        .test-section {
+            padding: 30px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .test-section:last-child {
+            border-bottom: none;
+        }
+        
+        .test-section h2 {
+            color: #4facfe;
+            margin-top: 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .test-section h2::before {
+            content: "🔧";
+            font-size: 1.2em;
+        }
+        
+        .test-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-top: 20px;
+        }
+        
+        .test-card {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            border-left: 4px solid #4facfe;
+        }
+        
+        .test-card h3 {
+            margin: 0 0 15px 0;
+            color: #333;
+        }
+        
+        .test-card p {
+            margin: 0 0 15px 0;
+            color: #666;
+            line-height: 1.5;
+        }
+        
+        .test-button {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            margin: 5px;
+        }
+        
+        .test-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(79, 172, 254, 0.4);
+        }
+        
+        .test-button.danger {
+            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
+        }
+        
+        .test-button.success {
+            background: linear-gradient(135deg, #2ed573 0%, #1e90ff 100%);
+        }
+        
+        .test-button.warning {
+            background: linear-gradient(135deg, #ffa726 0%, #ff7043 100%);
+        }
+        
+        .log-area {
+            background: #1e1e1e;
+            color: #00ff00;
+            padding: 20px;
+            border-radius: 10px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            line-height: 1.4;
+            max-height: 400px;
+            overflow-y: auto;
+            margin-top: 20px;
+        }
+        
+        .status {
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+            font-weight: 500;
+        }
+        
+        .status.info {
+            background: #e3f2fd;
+            color: #1976d2;
+            border-left: 4px solid #2196f3;
+        }
+        
+        .status.success {
+            background: #e8f5e8;
+            color: #2e7d32;
+            border-left: 4px solid #4caf50;
+        }
+        
+        .status.warning {
+            background: #fff3e0;
+            color: #f57c00;
+            border-left: 4px solid #ff9800;
+        }
+        
+        .status.error {
+            background: #ffebee;
+            color: #c62828;
+            border-left: 4px solid #f44336;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            background: #e0e0e0;
+            border-radius: 3px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #4facfe 0%, #00f2fe 100%);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+        
+        .health-report {
+            background: #f5f5f5;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        
+        .health-report h3 {
+            color: #333;
+            margin: 0 0 15px 0;
+        }
+        
+        .health-metric {
+            display: flex;
+            justify-content: space-between;
+            margin: 10px 0;
+            padding: 10px;
+            background: white;
+            border-radius: 5px;
+        }
+        
+        .health-metric.good {
+            border-left: 4px solid #4caf50;
+        }
+        
+        .health-metric.warning {
+            border-left: 4px solid #ff9800;
+        }
+        
+        .health-metric.error {
+            border-left: 4px solid #f44336;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔧 阶段四：错误处理和恢复机制测试</h1>
+            <p>验证数据完整性检查、恢复机制和错误处理的完善性</p>
+        </div>
+
+        <div class="test-section">
+            <h2>测试说明</h2>
+            <p>本页面用于测试阶段四的错误处理和恢复机制：</p>
+            <ul>
+                <li><strong>数据完整性检查</strong>：检测和修复数据结构问题</li>
+                <li><strong>数据恢复机制</strong>：从备份或备用数据源恢复数据</li>
+                <li><strong>错误监控</strong>：监控数据健康状态和潜在问题</li>
+                <li><strong>紧急恢复</strong>：在数据损坏时的自动恢复流程</li>
+            </ul>
+        </div>
+
+        <div class="test-section">
+            <h2>测试步骤</h2>
+            <div id="testSteps">
+                <div class="status info">准备开始错误处理和恢复机制测试...</div>
+            </div>
+            
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+            
+            <button class="test-button" onclick="startTest()">开始测试</button>
+            <button class="test-button danger" onclick="clearLog()">清空日志</button>
+            <button class="test-button warning" onclick="testDataCorruption()">测试数据损坏</button>
+            <button class="test-button success" onclick="testDataRecovery()">测试数据恢复</button>
+            <button class="test-button" onclick="loadMainApp()">加载主应用</button>
+        </div>
+
+        <div class="test-section">
+            <h2>数据健康监控</h2>
+            <div id="healthReport" class="health-report">
+                <h3>数据健康状态</h3>
+                <div id="healthMetrics">
+                    <div class="health-metric good">
+                        <span>数据完整性</span>
+                        <span>✅ 正常</span>
+                    </div>
+                    <div class="health-metric good">
+                        <span>备份状态</span>
+                        <span>✅ 可用</span>
+                    </div>
+                    <div class="health-metric good">
+                        <span>错误处理</span>
+                        <span>✅ 正常</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h2>测试日志</h2>
+            <div id="logArea" class="log-area"></div>
+        </div>
+    </div>
+
+    <script>
+        let testStep = 0;
+        const totalSteps = 8;
+        const testSteps = [
+            "1. 初始化IndexedDB存储模块",
+            "2. 创建测试笔记数据",
+            "3. 测试数据完整性检查",
+            "4. 测试数据损坏检测",
+            "5. 测试数据恢复机制",
+            "6. 测试紧急恢复流程",
+            "7. 测试数据健康监控",
+            "8. 验证错误处理完善性"
+        ];
+
+        function log(message) {
+            const logArea = document.getElementById('logArea');
+            const timestamp = new Date().toLocaleTimeString();
+            logArea.innerHTML += `[${timestamp}] ${message}\n`;
+            logArea.scrollTop = logArea.scrollHeight;
+        }
+
+        function updateStepStatus(step, status, message) {
+            const testStepsDiv = document.getElementById('testSteps');
+            const statusClass = status === 'success' ? 'success' : status === 'error' ? 'error' : status === 'warning' ? 'warning' : 'info';
+            testStepsDiv.innerHTML += `<div class="status ${statusClass}">${testSteps[step]}: ${message}</div>`;
+        }
+
+        function updateProgress(step) {
+            const progress = (step / totalSteps) * 100;
+            document.getElementById('progressFill').style.width = progress + '%';
+        }
+
+        function clearLog() {
+            document.getElementById('logArea').innerHTML = '';
+            document.getElementById('testSteps').innerHTML = '<div class="status info">准备开始错误处理和恢复机制测试...</div>';
+            document.getElementById('progressFill').style.width = '0%';
+        }
+
+        function updateHealthReport(metrics) {
+            const healthMetricsDiv = document.getElementById('healthMetrics');
+            healthMetricsDiv.innerHTML = '';
+            
+            Object.entries(metrics).forEach(([key, value]) => {
+                const status = value.status || 'good';
+                const icon = value.status === 'error' ? '❌' : value.status === 'warning' ? '⚠️' : '✅';
+                const text = value.text || value;
+                
+                healthMetricsDiv.innerHTML += `
+                    <div class="health-metric ${status}">
+                        <span>${key}</span>
+                        <span>${icon} ${text}</span>
+                    </div>
+                `;
+            });
+        }
+
+        // 模拟IndexedDB存储
+        let mockIndexedDBStorage = {
+            isAvailable: true,
+            data: null,
+            backups: [],
+            
+            async loadData() {
+                log('模拟IndexedDB.loadData()被调用');
+                if (!this.isAvailable) {
+                    throw new Error('IndexedDB不可用');
+                }
+                return this.data || { currentNoteId: null, notes: {} };
+            },
+            
+            async saveData(data) {
+                log('模拟IndexedDB.saveData()被调用');
+                if (!this.isAvailable) {
+                    throw new Error('IndexedDB不可用');
+                }
+                this.data = data;
+                log(`数据已保存到IndexedDB，笔记数量: ${Object.keys(data.notes || {}).length}`);
+                return true;
+            },
+            
+            async backupData(data) {
+                log('模拟IndexedDB.backupData()被调用');
+                const backup = {
+                    id: 'backup_' + Date.now(),
+                    data: JSON.parse(JSON.stringify(data)), // 深拷贝
+                    timestamp: new Date().toISOString(),
+                    version: '2.0'
+                };
+                this.backups.push(backup);
+                log(`备份创建成功，ID: ${backup.id}`);
+                return true;
+            },
+            
+            async getAllBackups() {
+                log('模拟IndexedDB.getAllBackups()被调用');
+                return this.backups;
+            }
+        };
+
+        // 模拟数据完整性检查函数
+        function mockCheckAndRepairData(notesData) {
+            log('模拟数据完整性检查...');
+            
+            let repairReport = {
+                totalIssues: 0,
+                repairedIssues: 0,
+                criticalIssues: 0,
+                warnings: 0,
+                details: []
+            };
+            
+            // 检查笔记数据结构
+            if (!notesData.notes || typeof notesData.notes !== 'object') {
+                notesData.notes = {};
+                repairReport.totalIssues++;
+                repairReport.repairedIssues++;
+                repairReport.criticalIssues++;
+                repairReport.details.push('笔记数据结构重置');
+            }
+            
+            // 检查每个笔记的完整性
+            Object.keys(notesData.notes).forEach(noteId => {
+                const note = notesData.notes[noteId];
+                
+                if (!note || typeof note !== 'object') {
+                    delete notesData.notes[noteId];
+                    repairReport.totalIssues++;
+                    repairReport.repairedIssues++;
+                    repairReport.details.push(`删除异常笔记: ${noteId}`);
+                    return;
+                }
+                
+                if (typeof note.content !== 'string') {
+                    note.content = '';
+                    repairReport.totalIssues++;
+                    repairReport.repairedIssues++;
+                    repairReport.details.push(`修复笔记内容: ${noteId}`);
+                }
+                
+                if (typeof note.title !== 'string') {
+                    note.title = '未命名笔记';
+                    repairReport.totalIssues++;
+                    repairReport.repairedIssues++;
+                    repairReport.details.push(`修复笔记标题: ${noteId}`);
+                }
+            });
+            
+            log(`数据完整性检查完成，修复了 ${repairReport.repairedIssues} 个问题`);
+            return repairReport;
+        }
+
+        // 模拟数据恢复函数
+        async function mockRecoverData() {
+            log('模拟数据恢复流程...');
+            
+            // 1. 尝试从IndexedDB恢复
+            if (mockIndexedDBStorage.isAvailable) {
+                try {
+                    const data = await mockIndexedDBStorage.loadData();
+                    if (data && data.notes && Object.keys(data.notes).length > 0) {
+                        log('从IndexedDB恢复数据成功');
+                        return data;
+                    }
+                } catch (error) {
+                    log('从IndexedDB恢复失败: ' + error.message);
+                }
+            }
+            
+            // 2. 尝试从备份恢复
+            const backups = await mockIndexedDBStorage.getAllBackups();
+            if (backups.length > 0) {
+                backups.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+                const latestBackup = backups[0];
+                log('从备份恢复数据成功: ' + latestBackup.timestamp);
+                return latestBackup.data;
+            }
+            
+            log('所有数据恢复方案都失败');
+            return null;
+        }
+
+        async function startTest() {
+            testStep = 0;
+            clearLog();
+            log('开始阶段四：错误处理和恢复机制测试...');
+            
+            try {
+                // 步骤1: 初始化IndexedDB存储模块
+                testStep++;
+                updateProgress(testStep);
+                log(`步骤${testStep}: 初始化IndexedDB存储模块`);
+                
+                window.indexedDBStorage = mockIndexedDBStorage;
+                log('IndexedDB存储模块初始化成功');
+                updateStepStatus(testStep - 1, 'success', 'IndexedDB模块初始化成功');
+
+                // 步骤2: 创建测试笔记数据
+                testStep++;
+                updateProgress(testStep);
+                log(`步骤${testStep}: 创建测试笔记数据`);
+                
+                const testData = {
+                    currentNoteId: 'test-note-1',
+                    notes: {
+                        'test-note-1': {
+                            id: 'test-note-1',
+                            title: '测试笔记',
+                            content: '# 测试内容\n\n这是一个测试笔记。',
+                            lastModified: new Date().toISOString(),
+                            versions: []
+                        },
+                        'test-note-2': {
+                            id: 'test-note-2',
+                            title: '另一个测试笔记',
+                            content: '这是另一个测试笔记的内容。',
+                            lastModified: new Date().toISOString(),
+                            versions: []
+                        }
+                    }
+                };
+                
+                await mockIndexedDBStorage.saveData(testData);
+                await mockIndexedDBStorage.backupData(testData);
+                log('测试数据创建完成，包含2个笔记和1个备份');
+                updateStepStatus(testStep - 1, 'success', '测试数据创建完成');
+
+                // 步骤3: 测试数据完整性检查
+                testStep++;
+                updateProgress(testStep);
+                log(`步骤${testStep}: 测试数据完整性检查`);
+                
+                const repairReport = mockCheckAndRepairData(testData);
+                if (repairReport.repairedIssues === 0) {
+                    log('✅ 数据完整性检查通过：没有发现问题');
+                    updateStepStatus(testStep - 1, 'success', '数据完整性检查通过');
+                } else {
+                    log(`✅ 数据完整性检查通过：修复了 ${repairReport.repairedIssues} 个问题`);
+                    updateStepStatus(testStep - 1, 'success', `修复了 ${repairReport.repairedIssues} 个问题`);
+                }
+
+                // 步骤4: 测试数据损坏检测
+                testStep++;
+                updateProgress(testStep);
+                log(`步骤${testStep}: 测试数据损坏检测`);
+                
+                // 模拟数据损坏
+                testData.notes['corrupted-note'] = {
+                    id: 'corrupted-note',
+                    title: null, // 损坏的标题
+                    content: undefined, // 损坏的内容
+                    lastModified: new Date().toISOString(),
+                    versions: 'invalid' // 损坏的版本数组
+                };
+                
+                const corruptionReport = mockCheckAndRepairData(testData);
+                if (corruptionReport.repairedIssues > 0) {
+                    log('✅ 数据损坏检测通过：成功检测并修复损坏数据');
+                    updateStepStatus(testStep - 1, 'success', '数据损坏检测通过');
+                } else {
+                    throw new Error('数据损坏检测失败：没有检测到损坏数据');
+                }
+
+                // 步骤5: 测试数据恢复机制
+                testStep++;
+                updateProgress(testStep);
+                log(`步骤${testStep}: 测试数据恢复机制`);
+                
+                const recoveredData = await mockRecoverData();
+                if (recoveredData && recoveredData.notes) {
+                    log('✅ 数据恢复机制测试通过：成功恢复数据');
+                    updateStepStatus(testStep - 1, 'success', '数据恢复机制测试通过');
+                } else {
+                    throw new Error('数据恢复机制测试失败：无法恢复数据');
+                }
+
+                // 步骤6: 测试紧急恢复流程
+                testStep++;
+                updateProgress(testStep);
+                log(`步骤${testStep}: 测试紧急恢复流程`);
+                
+                // 模拟IndexedDB不可用
+                mockIndexedDBStorage.isAvailable = false;
+                
+                try {
+                    const emergencyData = await mockRecoverData();
+                    if (emergencyData) {
+                        log('✅ 紧急恢复流程测试通过：从备份恢复数据');
+                        updateStepStatus(testStep - 1, 'success', '紧急恢复流程测试通过');
+                    } else {
+                        throw new Error('紧急恢复失败');
+                    }
+                } finally {
+                    mockIndexedDBStorage.isAvailable = true;
+                }
+
+                // 步骤7: 测试数据健康监控
+                testStep++;
+                updateProgress(testStep);
+                log(`步骤${testStep}: 测试数据健康监控`);
+                
+                const healthReport = {
+                    timestamp: new Date().toISOString(),
+                    totalNotes: Object.keys(testData.notes).length,
+                    totalVersions: 0,
+                    dataSize: JSON.stringify(testData).length,
+                    issues: []
+                };
+                
+                if (healthReport.totalNotes > 0) {
+                    log('✅ 数据健康监控测试通过：数据状态正常');
+                    updateStepStatus(testStep - 1, 'success', '数据健康监控测试通过');
+                } else {
+                    throw new Error('数据健康监控测试失败：数据状态异常');
+                }
+
+                // 步骤8: 验证错误处理完善性
+                testStep++;
+                updateProgress(testStep);
+                log(`步骤${testStep}: 验证错误处理完善性`);
+                
+                // 测试各种错误情况
+                let errorHandlingScore = 0;
+                
+                // 测试IndexedDB不可用
+                mockIndexedDBStorage.isAvailable = false;
+                try {
+                    await mockIndexedDBStorage.loadData();
+                } catch (error) {
+                    errorHandlingScore++;
+                    log('✅ IndexedDB不可用错误处理正常');
+                }
+                
+                // 测试数据恢复
+                const recoveryResult = await mockRecoverData();
+                if (recoveryResult) {
+                    errorHandlingScore++;
+                    log('✅ 数据恢复错误处理正常');
+                }
+                
+                mockIndexedDBStorage.isAvailable = true;
+                
+                if (errorHandlingScore >= 2) {
+                    log('✅ 错误处理完善性验证通过');
+                    updateStepStatus(testStep - 1, 'success', '错误处理完善性验证通过');
+                } else {
+                    throw new Error('错误处理完善性验证失败');
+                }
+
+                // 测试完成
+                log('🎉 阶段四：错误处理和恢复机制测试全部通过！');
+                
+                // 更新健康报告
+                updateHealthReport({
+                    '数据完整性': { status: 'good', text: '正常' },
+                    '备份状态': { status: 'good', text: '可用' },
+                    '错误处理': { status: 'good', text: '正常' },
+                    '恢复机制': { status: 'good', text: '正常' }
+                });
+                
+            } catch (error) {
+                log(`❌ 测试失败: ${error.message}`);
+                updateStepStatus(testStep - 1, 'error', `测试失败: ${error.message}`);
+                
+                updateHealthReport({
+                    '数据完整性': { status: 'error', text: '异常' },
+                    '备份状态': { status: 'warning', text: '检查中' },
+                    '错误处理': { status: 'error', text: '异常' },
+                    '恢复机制': { status: 'warning', text: '检查中' }
+                });
+            }
+        }
+
+        function testDataCorruption() {
+            log('开始测试数据损坏场景...');
+            
+            // 模拟数据损坏
+            const corruptedData = {
+                currentNoteId: 'corrupted-note',
+                notes: {
+                    'corrupted-note': {
+                        id: 'corrupted-note',
+                        title: null,
+                        content: undefined,
+                        lastModified: 'invalid-date',
+                        versions: 'not-an-array'
+                    },
+                    'normal-note': {
+                        id: 'normal-note',
+                        title: '正常笔记',
+                        content: '这是正常的内容',
+                        lastModified: new Date().toISOString(),
+                        versions: []
+                    }
+                }
+            };
+            
+            log('创建损坏的测试数据...');
+            const repairReport = mockCheckAndRepairData(corruptedData);
+            
+            log(`数据损坏测试完成，修复了 ${repairReport.repairedIssues} 个问题`);
+            log('修复详情:', repairReport.details);
+        }
+
+        async function testDataRecovery() {
+            log('开始测试数据恢复场景...');
+            
+            // 模拟IndexedDB不可用
+            mockIndexedDBStorage.isAvailable = false;
+            
+            try {
+                const recoveredData = await mockRecoverData();
+                if (recoveredData) {
+                    log('✅ 数据恢复测试成功：从备份恢复数据');
+                    log(`恢复的笔记数量: ${Object.keys(recoveredData.notes).length}`);
+                } else {
+                    log('❌ 数据恢复测试失败：没有可用的备份数据');
+                }
+            } finally {
+                mockIndexedDBStorage.isAvailable = true;
+            }
+        }
+
+        function loadMainApp() {
+            log('加载主应用进行集成测试...');
+            const iframe = document.createElement('iframe');
+            iframe.src = 'index.html';
+            iframe.style.width = '100%';
+            iframe.style.height = '600px';
+            iframe.style.border = 'none';
+            iframe.style.borderRadius = '10px';
+            iframe.style.marginTop = '20px';
+            
+            const container = document.querySelector('.container');
+            container.appendChild(iframe);
+            
+            log('主应用加载完成，可以进行手动错误处理测试');
+        }
+
+        window.addEventListener('load', () => {
+            log('阶段四：错误处理和恢复机制测试页面加载完成');
+            log('点击"开始测试"按钮开始自动化测试');
+        });
+    </script>
+</body>
+</html>

@@ -692,19 +692,30 @@ async function saveToLocalStorage() {
     }
 }
 
-// ========== 数据完整性检查与修复 ==========
+// ========== 数据完整性检查与修复（阶段四增强版） ==========
 function checkAndRepairData() {
     console.log('开始数据完整性检查...');
+    
+    let repairReport = {
+        totalIssues: 0,
+        repairedIssues: 0,
+        criticalIssues: 0,
+        warnings: 0,
+        details: []
+    };
     
     // 检查笔记数据结构
     if (!notesData.notes || typeof notesData.notes !== 'object') {
         console.warn('笔记数据结构异常，正在修复...');
         notesData.notes = {};
+        repairReport.totalIssues++;
+        repairReport.repairedIssues++;
+        repairReport.criticalIssues++;
+        repairReport.details.push('笔记数据结构重置');
     }
     
     // 检查每个笔记的完整性
     const noteIds = Object.keys(notesData.notes);
-    let repairedCount = 0;
     
     noteIds.forEach(noteId => {
         const note = notesData.notes[noteId];
@@ -713,7 +724,9 @@ function checkAndRepairData() {
         if (!note || typeof note !== 'object') {
             console.warn(`笔记 ${noteId} 数据异常，正在删除...`);
             delete notesData.notes[noteId];
-            repairedCount++;
+            repairReport.totalIssues++;
+            repairReport.repairedIssues++;
+            repairReport.details.push(`删除异常笔记: ${noteId}`);
             return;
         }
         
@@ -721,58 +734,229 @@ function checkAndRepairData() {
         if (typeof note.content !== 'string') {
             console.warn(`笔记 ${noteId} 内容异常，正在修复...`);
             note.content = '';
-            repairedCount++;
+            repairReport.totalIssues++;
+            repairReport.repairedIssues++;
+            repairReport.details.push(`修复笔记内容: ${noteId}`);
         }
         
         if (typeof note.title !== 'string') {
             note.title = '未命名笔记';
-            repairedCount++;
+            repairReport.totalIssues++;
+            repairReport.repairedIssues++;
+            repairReport.details.push(`修复笔记标题: ${noteId}`);
         }
         
         if (!Array.isArray(note.versions)) {
             note.versions = [];
-            repairedCount++;
+            repairReport.totalIssues++;
+            repairReport.repairedIssues++;
+            repairReport.details.push(`修复笔记版本数组: ${noteId}`);
         }
         
         // 检查版本数据完整性
+        const originalVersionCount = note.versions.length;
         note.versions = note.versions.filter(version => {
             if (!version || typeof version !== 'object') return false;
             if (typeof version.content !== 'string') return false;
             if (typeof version.timestamp !== 'string') return false;
             return true;
         });
+        
+        if (note.versions.length !== originalVersionCount) {
+            repairReport.totalIssues++;
+            repairReport.repairedIssues++;
+            repairReport.details.push(`清理无效版本: ${noteId} (${originalVersionCount} -> ${note.versions.length})`);
+        }
+        
+        // 检查笔记大小（防止过大）
+        if (note.content && note.content.length > 1000000) { // 1MB限制
+            repairReport.warnings++;
+            repairReport.details.push(`警告: 笔记过大 ${noteId} (${(note.content.length / 1024 / 1024).toFixed(2)}MB)`);
+        }
     });
     
     // 检查当前笔记ID是否有效
     if (notesData.currentNoteId && !notesData.notes[notesData.currentNoteId]) {
         console.warn('当前笔记ID无效，正在重置...');
         notesData.currentNoteId = null;
-        repairedCount++;
+        repairReport.totalIssues++;
+        repairReport.repairedIssues++;
+        repairReport.details.push('重置无效的当前笔记ID');
     }
     
-    // 如果有修复，保存数据
-    if (repairedCount > 0) {
-        console.log(`数据修复完成，修复了 ${repairedCount} 个问题`);
-        // 异步保存，但不等待完成（避免阻塞UI）
-        saveToLocalStorage().catch(error => {
-            console.error('数据修复后保存失败:', error);
-        });
-    } else {
-        console.log('数据完整性检查通过');
-    }
-    
-    // 显示数据统计
+    // 检查数据一致性
     const totalNotes = Object.keys(notesData.notes).length;
     const totalVersions = Object.values(notesData.notes).reduce((sum, note) => {
         return sum + (note.versions ? note.versions.length : 0);
     }, 0);
     
+    // 数据量检查
+    if (totalNotes > 100) {
+        repairReport.warnings++;
+        repairReport.details.push(`警告: 笔记数量过多 (${totalNotes})，建议定期备份`);
+    }
+    
+    if (totalVersions > 1000) {
+        repairReport.warnings++;
+        repairReport.details.push(`警告: 版本数量过多 (${totalVersions})，建议清理旧版本`);
+    }
+    
+    // 生成修复报告
+    if (repairReport.totalIssues > 0) {
+        console.log(`数据修复完成，修复了 ${repairReport.repairedIssues} 个问题，发现 ${repairReport.warnings} 个警告`);
+        console.log('修复详情:', repairReport.details);
+        
+        // 异步保存，但不等待完成（避免阻塞UI）
+        saveToLocalStorage().catch(error => {
+            console.error('数据修复后保存失败:', error);
+        });
+        
+        // 如果有严重问题，显示用户提示
+        if (repairReport.criticalIssues > 0) {
+            showToast(`检测到 ${repairReport.criticalIssues} 个严重问题已自动修复`, 5000);
+        }
+    } else {
+        console.log('数据完整性检查通过');
+    }
+    
     console.log(`数据统计: ${totalNotes} 篇笔记，${totalVersions} 个版本`);
     
-    // 如果数据量很大，给出警告
-    if (totalNotes > 50) {
-        console.warn(`笔记数量较多 (${totalNotes})，建议定期备份数据`);
+    // 返回修复报告供监控使用
+    return repairReport;
+}
+
+// ========== 数据恢复机制（阶段四新增） ==========
+async function recoverData() {
+    console.log('开始数据恢复流程...');
+    
+    try {
+        // 1. 尝试从IndexedDB恢复
+        if (window.indexedDBStorage) {
+            try {
+                const data = await window.indexedDBStorage.loadData();
+                if (data && data.notes && Object.keys(data.notes).length > 0) {
+                    console.log('从IndexedDB恢复数据成功');
+                    return data;
+                }
+            } catch (error) {
+                console.warn('从IndexedDB恢复失败:', error);
+            }
+        }
+        
+        // 2. 尝试从备份恢复
+        if (window.indexedDBStorage) {
+            try {
+                const backups = await window.indexedDBStorage.getAllBackups();
+                if (backups.length > 0) {
+                    // 按时间排序，获取最新的备份
+                    backups.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+                    const latestBackup = backups[0];
+                    
+                    console.log('从备份恢复数据成功:', latestBackup.timestamp);
+                    return latestBackup.data;
+                }
+            } catch (error) {
+                console.warn('从备份恢复失败:', error);
+            }
+        }
+        
+        // 3. 尝试从localStorage恢复（最后的回退方案）
+        try {
+            const localStorageData = localStorage.getItem('notesData');
+            if (localStorageData) {
+                const data = JSON.parse(localStorageData);
+                if (data && data.notes && Object.keys(data.notes).length > 0) {
+                    console.log('从localStorage恢复数据成功');
+                    return data;
+                }
+            }
+        } catch (error) {
+            console.warn('从localStorage恢复失败:', error);
+        }
+        
+        console.log('所有数据恢复方案都失败，返回空数据');
+        return null;
+        
+    } catch (error) {
+        console.error('数据恢复过程中发生错误:', error);
+        return null;
     }
+}
+
+// 紧急数据恢复函数
+async function emergencyDataRecovery() {
+    console.log('启动紧急数据恢复...');
+    
+    try {
+        const recoveredData = await recoverData();
+        
+        if (recoveredData) {
+            // 恢复数据到内存
+            notesData.currentNoteId = recoveredData.currentNoteId;
+            notesData.notes = recoveredData.notes;
+            
+            // 重新保存到IndexedDB
+            await saveToLocalStorage();
+            
+            // 重新渲染UI
+            renderNotesList();
+            if (notesData.currentNoteId && notesData.notes[notesData.currentNoteId]) {
+                switchNote(notesData.currentNoteId);
+            }
+            
+            console.log('紧急数据恢复成功');
+            showToast('数据恢复成功！', 3000);
+            return true;
+        } else {
+            console.error('紧急数据恢复失败：没有可用的备份数据');
+            showToast('数据恢复失败：没有可用的备份数据', 5000);
+            return false;
+        }
+        
+    } catch (error) {
+        console.error('紧急数据恢复过程中发生错误:', error);
+        showToast('数据恢复过程中发生错误', 5000);
+        return false;
+    }
+}
+
+// 数据健康监控
+function monitorDataHealth() {
+    const healthReport = {
+        timestamp: new Date().toISOString(),
+        totalNotes: Object.keys(notesData.notes).length,
+        totalVersions: Object.values(notesData.notes).reduce((sum, note) => {
+            return sum + (note.versions ? note.versions.length : 0);
+        }, 0),
+        dataSize: JSON.stringify(notesData).length,
+        issues: []
+    };
+    
+    // 检查数据大小
+    if (healthReport.dataSize > 5000000) { // 5MB
+        healthReport.issues.push('数据大小超过5MB，可能影响性能');
+    }
+    
+    // 检查笔记数量
+    if (healthReport.totalNotes > 100) {
+        healthReport.issues.push('笔记数量过多，建议定期备份');
+    }
+    
+    // 检查版本数量
+    if (healthReport.totalVersions > 1000) {
+        healthReport.issues.push('版本数量过多，建议清理旧版本');
+    }
+    
+    // 检查数据完整性
+    Object.keys(notesData.notes).forEach(noteId => {
+        const note = notesData.notes[noteId];
+        if (!note.title || !note.content) {
+            healthReport.issues.push(`笔记 ${noteId} 数据不完整`);
+        }
+    });
+    
+    console.log('数据健康报告:', healthReport);
+    return healthReport;
 }
 
 // ========== 笔记列表与内容渲染 ==========
