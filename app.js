@@ -574,7 +574,7 @@ async function init() {
     
     // ========== 自动保存机制 ==========
     // 1. 页面关闭前自动保存
-    window.addEventListener('beforeunload', function(e) {
+    window.addEventListener('beforeunload', async function(e) {
         if (notesData.currentNoteId) {
             const currentContent = noteEditorEl.value;
             const note = notesData.notes[notesData.currentNoteId];
@@ -582,13 +582,17 @@ async function init() {
                 // 强制保存当前内容
                 note.content = currentContent;
                 note.lastModified = new Date().toISOString();
-                saveToLocalStorage();
+                try {
+                    await saveToLocalStorage();
+                } catch (error) {
+                    console.error('页面关闭前保存失败:', error);
+                }
             }
         }
     });
     
     // 2. 定时自动保存（每30秒）
-    setInterval(function() {
+    setInterval(async function() {
         if (notesData.currentNoteId) {
             const currentContent = noteEditorEl.value;
             const note = notesData.notes[notesData.currentNoteId];
@@ -596,8 +600,12 @@ async function init() {
                 // 静默保存，不生成新版本
                 note.content = currentContent;
                 note.lastModified = new Date().toISOString();
-                saveToLocalStorage();
-                console.log('定时自动保存完成');
+                try {
+                    await saveToLocalStorage();
+                    console.log('定时自动保存完成');
+                } catch (error) {
+                    console.error('定时自动保存失败:', error);
+                }
             }
         }
     }, 30000);
@@ -606,7 +614,7 @@ async function init() {
     let saveTimeout = null;
     function debouncedSave() {
         if (saveTimeout) clearTimeout(saveTimeout);
-        saveTimeout = setTimeout(function() {
+        saveTimeout = setTimeout(async function() {
             if (notesData.currentNoteId) {
                 const currentContent = noteEditorEl.value;
                 const note = notesData.notes[notesData.currentNoteId];
@@ -614,8 +622,12 @@ async function init() {
                     // 静默保存，不生成新版本
                     note.content = currentContent;
                     note.lastModified = new Date().toISOString();
-                    saveToLocalStorage();
-                    console.log('内容变化自动保存完成');
+                    try {
+                        await saveToLocalStorage();
+                        console.log('内容变化自动保存完成');
+                    } catch (error) {
+                        console.error('内容变化自动保存失败:', error);
+                    }
                 }
             }
         }, 2000); // 2秒防抖
@@ -799,7 +811,10 @@ function checkAndRepairData() {
     // 如果有修复，保存数据
     if (repairedCount > 0) {
         console.log(`数据修复完成，修复了 ${repairedCount} 个问题`);
-        saveToLocalStorage();
+        // 异步保存，但不等待完成（避免阻塞UI）
+        saveToLocalStorage().catch(error => {
+            console.error('数据修复后保存失败:', error);
+        });
     } else {
         console.log('数据完整性检查通过');
     }
@@ -897,7 +912,10 @@ function renderNotesList() {
                         notePreviewEl.innerHTML = '<div class="empty-state"><h3><i class="fas fa-book-open"></i> 欢迎使用笔记系统</h3><p>点击左侧的\"新建笔记\"按钮开始记录你的想法</p></div>';
                     }
                 }
-                saveToLocalStorage();
+                // 异步保存，但不等待完成（避免阻塞UI）
+                saveToLocalStorage().catch(error => {
+                    console.error('删除笔记后保存失败:', error);
+                });
                 renderNotesList();
             }
         };
@@ -935,7 +953,10 @@ function switchNote(noteId) {
     }
     
     // 保存当前状态
-    saveToLocalStorage();
+    // 异步保存，但不等待完成（避免阻塞UI）
+    saveToLocalStorage().catch(error => {
+        console.error('切换笔记后保存失败:', error);
+    });
     
     // --- 优化：只更新侧边栏的active状态，不重新渲染整个列表 ---
     updateSidebarActiveState(noteId);
@@ -1066,7 +1087,10 @@ function showVersions() {
                 e.stopPropagation();
                 if (confirm('确定要删除该历史版本吗？此操作不可恢复！')) {
                     note.versions.splice(index, 1);
-                    saveToLocalStorage();
+                    // 异步保存，但不等待完成（避免阻塞UI）
+                    saveToLocalStorage().catch(error => {
+                        console.error('删除版本后保存失败:', error);
+                    });
                     showVersions();
                 }
             };
@@ -1149,7 +1173,10 @@ function restoreVersion(versionIndex) {
     notePreviewEl.style.display = 'block';
     editBtn.innerHTML = '<i class="fas fa-edit"></i><span class="btn-text"> 编辑笔记</span>';
     
-    saveToLocalStorage();
+    // 异步保存，但不等待完成（避免阻塞UI）
+    saveToLocalStorage().catch(error => {
+        console.error('恢复版本后保存失败:', error);
+    });
     showToast('版本已恢复');
 }
 
@@ -1270,7 +1297,10 @@ function setupEventListeners() {
         notesData.notes[noteId] = newNote;
         // 立即切换并保存（switchNote会同步所有内容并强制退出编辑模式）
         switchNote(noteId);
-        saveToLocalStorage();
+        // 异步保存，但不等待完成（避免阻塞UI）
+        saveToLocalStorage().catch(error => {
+            console.error('新建笔记后保存失败:', error);
+        });
         renderNotesList();
         // 自动进入完整编辑模式
         if (editBtn) editBtn.click();
@@ -1414,7 +1444,10 @@ function setupEventListeners() {
     noteTitleEl.addEventListener('blur', () => {
         if (notesData.currentNoteId) {
             notesData.notes[notesData.currentNoteId].title = noteTitleEl.value;
-            saveToLocalStorage();
+            // 异步保存，但不等待完成（避免阻塞UI）
+            saveToLocalStorage().catch(error => {
+                console.error('标题变化后保存失败:', error);
+            });
             renderNotesList();
         }
     });
@@ -1428,7 +1461,10 @@ function setupEventListeners() {
                     const parsedData = JSON.parse(backupData);
                     notesData.currentNoteId = parsedData.currentNoteId;
                     notesData.notes = parsedData.notes;
-                    saveToLocalStorage();
+                    // 异步保存，但不等待完成（避免阻塞UI）
+                    saveToLocalStorage().catch(error => {
+                        console.error('紧急数据恢复后保存失败:', error);
+                    });
                     location.reload();
                     alert('数据恢复成功！');
                 } else {
@@ -2073,7 +2109,10 @@ async function importFromFiles(files) {
             versions: []
         };
     }
-    saveToLocalStorage();
+    // 异步保存，但不等待完成（避免阻塞UI）
+    saveToLocalStorage().catch(error => {
+        console.error('导入文件后保存失败:', error);
+    });
 }
 
 function loadScript(src) {
