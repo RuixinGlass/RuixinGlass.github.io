@@ -655,98 +655,40 @@ async function init() {
 // ========== 本地存储 ==========
 async function loadFromLocalStorage() {
     try {
-        let dataLoaded = false;
-        // 优先使用 IndexedDB
+        // 只信任 IndexedDB
         if (window.indexedDBStorage) {
-            try {
-                const data = await window.indexedDBStorage.loadData();
-                notesData.currentNoteId = data.currentNoteId;
-                notesData.notes = data.notes;
-                console.log('从 IndexedDB 加载数据成功');
-                dataLoaded = true;
-            } catch (indexedDBError) {
-                console.warn('IndexedDB 加载失败，回退到 localStorage:', indexedDBError);
-            }
-        }
-        
-        // 如果 IndexedDB 失败，回退到 localStorage
-        if (!dataLoaded) {
-            const savedData = localStorage.getItem('notesData');
-            if (savedData) {
-                const parsedData = JSON.parse(savedData);
-                notesData.currentNoteId = parsedData.currentNoteId;
-                notesData.notes = parsedData.notes;
-                console.log('从 localStorage 加载数据成功');
-            }
+            const data = await window.indexedDBStorage.loadData();
+            notesData.currentNoteId = data.currentNoteId;
+            notesData.notes = data.notes;
+            console.log('从 IndexedDB 加载数据成功');
+        } else {
+            // 如果 IndexedDB 模块加载失败，给出明确错误
+            throw new Error('核心存储模块 (IndexedDB) 加载失败！');
         }
     } catch (error) {
         console.error('数据加载失败:', error);
-        // 尝试加载备份数据
-        try {
-            const savedData = localStorage.getItem('notesData_backup');
-            if (savedData) {
-                const parsedData = JSON.parse(savedData);
-                notesData.currentNoteId = parsedData.currentNoteId;
-                notesData.notes = parsedData.notes;
-                console.log('加载备份数据成功');
-            } else {
-                console.log('未找到备份数据，将使用空数据');
-                notesData.currentNoteId = null;
-                notesData.notes = {};
-            }
-        } catch (e) {
-            console.error('加载备份数据也失败，将使用空数据:', e);
-            notesData.currentNoteId = null;
-            notesData.notes = {};
-        }
+        alert('应用数据加载失败，请尝试刷新或清理浏览器缓存。如果问题持续，请联系支持。');
+        // 清空数据，防止应用在错误状态下运行
+        notesData.currentNoteId = null;
+        notesData.notes = {};
     }
-
-
 }
 
 async function saveToLocalStorage() {
     try {
-        // 优先使用 IndexedDB
+        // 只信任 IndexedDB
         if (window.indexedDBStorage) {
-            try {
-                await window.indexedDBStorage.saveData(notesData);
-                // 同时创建备份
-                await window.indexedDBStorage.backupData(notesData);
-                console.log('IndexedDB 数据保存成功，笔记数量:', Object.keys(notesData.notes).length);
-                return;
-            } catch (indexedDBError) {
-                console.warn('IndexedDB 保存失败，回退到 localStorage:', indexedDBError);
-            }
+            await window.indexedDBStorage.saveData(notesData);
+            // 同时创建备份
+            await window.indexedDBStorage.backupData(notesData);
+            console.log('IndexedDB 数据保存成功，笔记数量:', Object.keys(notesData.notes).length);
+        } else {
+            throw new Error('核心存储模块 (IndexedDB) 加载失败！');
         }
-        
-        // 回退到 localStorage
-        // 主存储
-        localStorage.setItem('notesData', JSON.stringify(notesData));
-        
-        // 备份存储（防止主存储损坏）
-        localStorage.setItem('notesData_backup', JSON.stringify(notesData));
-        
-        // 时间戳记录
-        localStorage.setItem('notesData_timestamp', new Date().toISOString());
-        
-        console.log('localStorage 数据保存成功，笔记数量:', Object.keys(notesData.notes).length);
     } catch (error) {
-        console.error('保存数据失败:', error);
-        // 尝试清理存储空间并重试
-        try {
-            if (window.indexedDBStorage) {
-                await window.indexedDBStorage.deleteDatabase();
-                await window.indexedDBStorage.saveData(notesData);
-                console.log('IndexedDB 清理后重新保存成功');
-            } else {
-                localStorage.clear();
-                localStorage.setItem('notesData', JSON.stringify(notesData));
-                console.log('localStorage 清理后重新保存成功');
-            }
-        } catch (e) {
-            console.error('清理后仍无法保存:', e);
-            alert('存储空间不足，请清理浏览器缓存后重试！');
-        }
+        console.error('保存数据到 IndexedDB 失败:', error);
+        // 将错误向上抛出，让调用者（如 saveVersion）处理
+        throw error;
     }
 }
 

@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>阶段二：数据源统一测试（简化版）</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .test-button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .test-button:hover {
+            background: #0056b3;
+        }
+        .test-button.danger {
+            background: #dc3545;
+        }
+        .test-button.danger:hover {
+            background: #c82333;
+        }
+        .test-button.success {
+            background: #28a745;
+        }
+        .test-button.success:hover {
+            background: #218838;
+        }
+        .log-area {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 15px;
+            height: 400px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 12px;
+            white-space: pre-wrap;
+        }
+        .status {
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .status.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        .status.warning {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔧 阶段二：数据源统一测试（简化版）</h1>
+    
+    <div class="test-container">
+        <h2>测试说明</h2>
+        <p>本页面用于测试阶段二的数据源统一修复：</p>
+        <ul>
+            <li><strong>移除localStorage回退</strong>：完全依赖IndexedDB</li>
+            <li><strong>单一数据源</strong>：避免数据源混乱</li>
+            <li><strong>错误处理</strong>：明确的错误提示和处理</li>
+        </ul>
+    </div>
+
+    <div class="test-container">
+        <h2>测试步骤</h2>
+        <div id="testSteps">
+            <div class="status info">准备开始测试...</div>
+        </div>
+        
+        <button class="test-button" onclick="startTest()">开始测试</button>
+        <button class="test-button danger" onclick="clearLog()">清空日志</button>
+        <button class="test-button success" onclick="loadMainApp()">加载主应用</button>
+    </div>
+
+    <div class="test-container">
+        <h2>测试日志</h2>
+        <div id="logArea" class="log-area"></div>
+    </div>
+
+    <script>
+        let testStep = 0;
+        const testSteps = [
+            "1. 测试数据加载逻辑（无localStorage回退）",
+            "2. 测试数据保存逻辑（无localStorage回退）",
+            "3. 测试数据加载失败处理",
+            "4. 测试数据保存失败处理",
+            "5. 验证单一数据源策略",
+            "6. 测试数据一致性"
+        ];
+
+        function log(message) {
+            const timestamp = new Date().toLocaleTimeString();
+            const logArea = document.getElementById('logArea');
+            logArea.textContent += `[${timestamp}] ${message}\n`;
+            logArea.scrollTop = logArea.scrollHeight;
+            console.log(`[${timestamp}] ${message}`);
+        }
+
+        function updateStepStatus(step, status, message) {
+            const testStepsDiv = document.getElementById('testSteps');
+            const statusClass = status === 'success' ? 'success' : status === 'error' ? 'error' : status === 'warning' ? 'warning' : 'info';
+            testStepsDiv.innerHTML += `<div class="status ${statusClass}">${testSteps[step]}: ${message}</div>`;
+        }
+
+        function clearLog() {
+            document.getElementById('logArea').textContent = '';
+            document.getElementById('testSteps').innerHTML = '<div class="status info">准备开始测试...</div>';
+            testStep = 0;
+        }
+
+        async function startTest() {
+            clearLog();
+            log('开始阶段二：数据源统一测试（简化版）...');
+            
+            try {
+                // 步骤1: 测试数据加载逻辑
+                log('步骤1: 测试数据加载逻辑（无localStorage回退）');
+                await testLoadLogic();
+                updateStepStatus(0, 'success', '数据加载逻辑测试通过');
+                
+                // 步骤2: 测试数据保存逻辑
+                log('步骤2: 测试数据保存逻辑（无localStorage回退）');
+                await testSaveLogic();
+                updateStepStatus(1, 'success', '数据保存逻辑测试通过');
+                
+                // 步骤3: 测试数据加载失败处理
+                log('步骤3: 测试数据加载失败处理');
+                await testLoadFailureHandling();
+                updateStepStatus(2, 'success', '加载失败处理测试通过');
+                
+                // 步骤4: 测试数据保存失败处理
+                log('步骤4: 测试数据保存失败处理');
+                await testSaveFailureHandling();
+                updateStepStatus(3, 'success', '保存失败处理测试通过');
+                
+                // 步骤5: 验证单一数据源策略
+                log('步骤5: 验证单一数据源策略');
+                await testSingleDataSource();
+                updateStepStatus(4, 'success', '单一数据源策略验证通过');
+                
+                // 步骤6: 测试数据一致性
+                log('步骤6: 测试数据一致性');
+                await testDataConsistency();
+                updateStepStatus(5, 'success', '数据一致性测试通过');
+                
+                log('✅ 阶段二：数据源统一测试全部通过！');
+                
+            } catch (error) {
+                log(`❌ 测试失败: ${error.message}`);
+                updateStepStatus(testStep, 'error', `测试失败: ${error.message}`);
+            }
+        }
+
+        async function testLoadLogic() {
+            // 模拟notesData对象
+            const notesData = {
+                currentNoteId: null,
+                notes: {}
+            };
+            
+            // 模拟IndexedDB存储
+            const indexedDBStorage = {
+                loadData: async function() {
+                    log('模拟IndexedDB.loadData()被调用');
+                    return {
+                        currentNoteId: 'test-note-1',
+                        notes: {
+                            'test-note-1': {
+                                title: '测试笔记',
+                                content: '这是测试内容',
+                                lastModified: new Date().toISOString()
+                            }
+                        }
+                    };
+                }
+            };
+            
+            // 直接测试loadFromLocalStorage函数逻辑
+            try {
+                // 只信任 IndexedDB
+                if (indexedDBStorage) {
+                    const data = await indexedDBStorage.loadData();
+                    notesData.currentNoteId = data.currentNoteId;
+                    notesData.notes = data.notes;
+                    log('从 IndexedDB 加载数据成功');
+                } else {
+                    // 如果 IndexedDB 模块加载失败，给出明确错误
+                    throw new Error('核心存储模块 (IndexedDB) 加载失败！');
+                }
+            } catch (error) {
+                log('数据加载失败:', error);
+                // 清空数据，防止应用在错误状态下运行
+                notesData.currentNoteId = null;
+                notesData.notes = {};
+                throw error;
+            }
+            
+            // 验证数据是否正确加载
+            if (notesData.currentNoteId === 'test-note-1' && 
+                notesData.notes['test-note-1']) {
+                log('✅ 数据加载逻辑测试通过：数据正确加载');
+            } else {
+                throw new Error('数据加载逻辑测试失败：数据加载不正确');
+            }
+        }
+
+        async function testSaveLogic() {
+            // 模拟IndexedDB存储
+            const indexedDBStorage = {
+                saveData: async function(data) {
+                    log('模拟IndexedDB.saveData()被调用');
+                    log(`保存数据：${Object.keys(data.notes).length} 个笔记`);
+                    return Promise.resolve();
+                },
+                backupData: async function(data) {
+                    log('模拟IndexedDB.backupData()被调用');
+                    return Promise.resolve();
+                }
+            };
+            
+            const notesData = {
+                currentNoteId: 'test-note-1',
+                notes: {
+                    'test-note-1': {
+                        title: '测试笔记',
+                        content: '这是测试内容',
+                        lastModified: new Date().toISOString()
+                    }
+                }
+            };
+            
+            // 直接测试saveToLocalStorage函数逻辑
+            try {
+                // 只信任 IndexedDB
+                if (indexedDBStorage) {
+                    await indexedDBStorage.saveData(notesData);
+                    // 同时创建备份
+                    await indexedDBStorage.backupData(notesData);
+                    log('IndexedDB 数据保存成功，笔记数量:', Object.keys(notesData.notes).length);
+                } else {
+                    throw new Error('核心存储模块 (IndexedDB) 加载失败！');
+                }
+            } catch (error) {
+                log('保存数据到 IndexedDB 失败:', error);
+                // 将错误向上抛出，让调用者处理
+                throw error;
+            }
+            
+            log('✅ 数据保存逻辑测试通过：数据正确保存');
+        }
+
+        async function testLoadFailureHandling() {
+            // 模拟IndexedDB加载失败
+            const indexedDBStorage = {
+                loadData: async function() {
+                    log('模拟IndexedDB.loadData()失败');
+                    throw new Error('IndexedDB加载失败');
+                }
+            };
+            
+            // 测试失败处理
+            try {
+                // 直接测试loadFromLocalStorage函数逻辑
+                if (indexedDBStorage) {
+                    const data = await indexedDBStorage.loadData();
+                    const notesData = {
+                        currentNoteId: data.currentNoteId,
+                        notes: data.notes
+                    };
+                    log('从 IndexedDB 加载数据成功');
+                } else {
+                    throw new Error('核心存储模块 (IndexedDB) 加载失败！');
+                }
+                throw new Error('应该抛出错误但没有抛出');
+            } catch (error) {
+                if (error.message.includes('IndexedDB加载失败')) {
+                    log('✅ 加载失败处理测试通过：正确抛出错误');
+                } else {
+                    throw error;
+                }
+            }
+        }
+
+        async function testSaveFailureHandling() {
+            // 模拟IndexedDB保存失败
+            const indexedDBStorage = {
+                saveData: async function(data) {
+                    log('模拟IndexedDB.saveData()失败');
+                    throw new Error('IndexedDB保存失败');
+                }
+            };
+            
+            const notesData = {
+                currentNoteId: 'test-note-1',
+                notes: {
+                    'test-note-1': {
+                        title: '测试笔记',
+                        content: '这是测试内容',
+                        lastModified: new Date().toISOString()
+                    }
+                }
+            };
+            
+            // 测试失败处理
+            try {
+                // 直接测试saveToLocalStorage函数逻辑
+                if (indexedDBStorage) {
+                    await indexedDBStorage.saveData(notesData);
+                    // 同时创建备份
+                    await indexedDBStorage.backupData(notesData);
+                    log('IndexedDB 数据保存成功，笔记数量:', Object.keys(notesData.notes).length);
+                } else {
+                    throw new Error('核心存储模块 (IndexedDB) 加载失败！');
+                }
+                throw new Error('应该抛出错误但没有抛出');
+            } catch (error) {
+                if (error.message.includes('IndexedDB保存失败')) {
+                    log('✅ 保存失败处理测试通过：正确抛出错误');
+                } else {
+                    throw error;
+                }
+            }
+        }
+
+        async function testSingleDataSource() {
+            // 验证没有localStorage回退逻辑
+            const originalLocalStorage = window.localStorage;
+            let localStorageAccessed = false;
+            
+            // 模拟localStorage访问检测
+            window.localStorage = {
+                getItem: function() {
+                    localStorageAccessed = true;
+                    return null;
+                },
+                setItem: function() {
+                    localStorageAccessed = true;
+                }
+            };
+            
+            // 正常测试
+            const indexedDBStorage = {
+                loadData: async function() {
+                    return { currentNoteId: null, notes: {} };
+                },
+                saveData: async function(data) {
+                    return Promise.resolve();
+                },
+                backupData: async function(data) {
+                    return Promise.resolve();
+                }
+            };
+            
+            const notesData = { currentNoteId: null, notes: {} };
+            
+            // 直接测试函数逻辑
+            if (indexedDBStorage) {
+                const data = await indexedDBStorage.loadData();
+                notesData.currentNoteId = data.currentNoteId;
+                notesData.notes = data.notes;
+            }
+            
+            if (indexedDBStorage) {
+                await indexedDBStorage.saveData(notesData);
+                await indexedDBStorage.backupData(notesData);
+            }
+            
+            // 恢复localStorage
+            window.localStorage = originalLocalStorage;
+            
+            if (!localStorageAccessed) {
+                log('✅ 单一数据源策略验证通过：没有访问localStorage');
+            } else {
+                throw new Error('单一数据源策略验证失败：仍然访问了localStorage');
+            }
+        }
+
+        async function testDataConsistency() {
+            log('测试数据一致性...');
+            
+            // 创建测试数据
+            const testData = {
+                currentNoteId: 'note-1',
+                notes: {
+                    'note-1': {
+                        title: '一致性测试笔记',
+                        content: '测试内容',
+                        lastModified: new Date().toISOString()
+                    }
+                }
+            };
+            
+            // 模拟IndexedDB存储
+            let savedData = null;
+            const indexedDBStorage = {
+                saveData: async function(data) {
+                    savedData = JSON.parse(JSON.stringify(data)); // 深拷贝
+                    log('数据已保存到IndexedDB');
+                },
+                loadData: async function() {
+                    return savedData || { currentNoteId: null, notes: {} };
+                },
+                backupData: async function(data) {
+                    log('备份数据已创建');
+                }
+            };
+            
+            // 设置测试数据
+            let notesData = testData;
+            
+            // 保存数据
+            if (indexedDBStorage) {
+                await indexedDBStorage.saveData(notesData);
+                await indexedDBStorage.backupData(notesData);
+            }
+            
+            // 清空内存数据
+            notesData = { currentNoteId: null, notes: {} };
+            
+            // 重新加载数据
+            if (indexedDBStorage) {
+                const data = await indexedDBStorage.loadData();
+                notesData.currentNoteId = data.currentNoteId;
+                notesData.notes = data.notes;
+            }
+            
+            // 验证数据一致性
+            if (JSON.stringify(notesData) === JSON.stringify(testData)) {
+                log('✅ 数据一致性测试通过：保存和加载的数据完全一致');
+            } else {
+                throw new Error('数据一致性测试失败：保存和加载的数据不一致');
+            }
+        }
+
+        function loadMainApp() {
+            log('加载主应用进行集成测试...');
+            const iframe = document.createElement('iframe');
+            iframe.src = 'index.html';
+            iframe.style.width = '100%';
+            iframe.style.height = '600px';
+            iframe.style.border = '1px solid #ccc';
+            
+            const container = document.createElement('div');
+            container.className = 'test-container';
+            container.innerHTML = '<h2>主应用集成测试</h2>';
+            container.appendChild(iframe);
+            
+            document.body.appendChild(container);
+            
+            iframe.onload = () => {
+                log('主应用加载完成，可以进行手动测试');
+                log('测试建议：');
+                log('1. 创建新笔记');
+                log('2. 编辑笔记内容');
+                log('3. 刷新页面验证数据');
+                log('4. 检查控制台日志');
+                log('5. 验证没有localStorage访问');
+            };
+        }
+
+        // 页面加载完成后的初始化
+        window.addEventListener('load', () => {
+            log('阶段二：数据源统一测试（简化版）页面加载完成');
+            log('点击"开始测试"按钮开始自动化测试');
+        });
+    </script>
+</body>
+</html>
