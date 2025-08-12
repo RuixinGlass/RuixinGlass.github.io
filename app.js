@@ -1012,12 +1012,19 @@ function renderNotesList() {
                 // 新增：编辑模式下切换笔记时自动保存当前笔记
                 const contentArea = document.querySelector('.content-area');
                 if (contentArea && contentArea.classList.contains('editing-mode')) {
-                    // 异步保存，但不等待完成（避免阻塞UI）
-                    saveVersion().catch(error => {
+                    // 先保存当前笔记，然后切换到目标笔记
+                    saveVersion(() => {
+                        // 保存完成后的回调：切换到目标笔记
+                        switchNote(noteId);
+                    }).catch(error => {
                         console.error('切换笔记时自动保存失败:', error);
+                        // 即使保存失败，也要切换到目标笔记
+                        switchNote(noteId);
                     });
+                } else {
+                    // 不在编辑模式，直接切换
+                    switchNote(noteId);
                 }
-                switchNote(noteId);
             }
         };
         // 删除按钮
@@ -2265,7 +2272,7 @@ function loadScript(src) {
 }
 
 // ========== 版本自动保存 ==========
-async function saveVersion() {
+async function saveVersion(onComplete) {
     if (!notesData.currentNoteId) return;
     const note = notesData.notes[notesData.currentNoteId];
     
@@ -2303,11 +2310,16 @@ async function saveVersion() {
     // 等待数据保存完成
     await saveToLocalStorage();
     
-    // 保存成功后才更新UI和提示
-    renderMarkdown(currentContent);
-    updateWordCount();
-    renderNotesList();
-    showToast('已自动保存并生成新版本');
+    // 如果提供了回调函数，执行回调；否则执行默认的UI更新
+    if (typeof onComplete === 'function') {
+        onComplete();
+    } else {
+        // 默认行为：保存成功后才更新UI和提示
+        renderMarkdown(currentContent);
+        updateWordCount();
+        renderNotesList();
+        showToast('已自动保存并生成新版本');
+    }
     
     console.log('版本保存完成，当前版本数:', note.versions.length);
 }
