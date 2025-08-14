@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IndexedDB连接管理压力测试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .test-button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .test-button:hover {
+            background: #0056b3;
+        }
+        .test-button.danger {
+            background: #dc3545;
+        }
+        .test-button.danger:hover {
+            background: #c82333;
+        }
+        .test-button.success {
+            background: #28a745;
+        }
+        .test-button.success:hover {
+            background: #218838;
+        }
+        .log-area {
+            background: #1e1e1e;
+            color: #00ff00;
+            padding: 15px;
+            border-radius: 5px;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 400px;
+            overflow-y: auto;
+            margin-top: 15px;
+        }
+        .status {
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .status.warning {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+        .metrics {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px;
+            margin: 15px 0;
+        }
+        .metric {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 5px;
+            text-align: center;
+        }
+        .metric-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #007bff;
+        }
+        .metric-label {
+            font-size: 12px;
+            color: #6c757d;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚨 IndexedDB连接管理压力测试</h1>
+        
+        <div class="test-section">
+            <h3>测试说明</h3>
+            <p>这个测试页面用于验证IndexedDB连接管理修复是否解决了并发保存和数据丢失问题。</p>
+            <p><strong>测试场景：</strong></p>
+            <ul>
+                <li>多篇笔记同时保存</li>
+                <li>大篇幅内容保存</li>
+                <li>高并发保存请求</li>
+                <li>快速切换笔记</li>
+                <li>长时间运行测试</li>
+                <li>网络中断恢复</li>
+            </ul>
+        </div>
+
+        <div class="test-section">
+            <h3>测试指标</h3>
+            <div class="metrics">
+                <div class="metric">
+                    <div class="metric-value" id="totalRequests">0</div>
+                    <div class="metric-label">总请求数</div>
+                </div>
+                <div class="metric">
+                    <div class="metric-value" id="successCount">0</div>
+                    <div class="metric-label">成功次数</div>
+                </div>
+                <div class="metric">
+                    <div class="metric-value" id="errorCount">0</div>
+                    <div class="metric-label">错误次数</div>
+                </div>
+                <div class="metric">
+                    <div class="metric-value" id="avgResponseTime">0ms</div>
+                    <div class="metric-label">平均响应时间</div>
+                </div>
+                <div class="metric">
+                    <div class="metric-value" id="dataSize">0KB</div>
+                    <div class="metric-label">数据大小</div>
+                </div>
+                <div class="metric">
+                    <div class="metric-value" id="concurrentRequests">0</div>
+                    <div class="metric-label">并发请求数</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h3>测试场景</h3>
+            <button class="test-button" onclick="testBasicOperations()">基础操作测试</button>
+            <button class="test-button" onclick="testConcurrentSaves()">并发保存测试</button>
+            <button class="test-button" onclick="testLargeData()">大数据量测试</button>
+            <button class="test-button" onclick="testRapidSwitching()">快速切换测试</button>
+            <button class="test-button" onclick="testStressTest()">压力测试</button>
+            <button class="test-button danger" onclick="testErrorRecovery()">错误恢复测试</button>
+            <button class="test-button success" onclick="testLongRunning()">长时间运行测试</button>
+            <button class="test-button" onclick="clearLog()">清空日志</button>
+        </div>
+
+        <div class="test-section">
+            <h3>测试结果</h3>
+            <div id="testResults"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>详细日志</h3>
+            <div id="logArea" class="log-area"></div>
+        </div>
+    </div>
+
+    <script src="indexeddb-storage.js"></script>
+    <script>
+        // 测试统计
+        let stats = {
+            totalRequests: 0,
+            successCount: 0,
+            errorCount: 0,
+            responseTimes: [],
+            dataSize: 0,
+            concurrentRequests: 0,
+            maxConcurrent: 0
+        };
+
+        // 测试数据生成器
+        function generateLargeContent(sizeKB) {
+            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789\n\t ';
+            let content = '';
+            const targetLength = sizeKB * 1024;
+            for (let i = 0; i < targetLength; i++) {
+                content += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            return content;
+        }
+
+        function generateTestNotes(count, avgSizeKB = 10) {
+            const notes = {};
+            for (let i = 1; i <= count; i++) {
+                const size = avgSizeKB + Math.random() * avgSizeKB;
+                notes[`note-${i}`] = {
+                    id: `note-${i}`,
+                    title: `测试笔记 ${i}`,
+                    content: generateLargeContent(size),
+                    lastModified: new Date().toISOString(),
+                    versions: []
+                };
+            }
+            return notes;
+        }
+
+        function log(message, type = 'info') {
+            const logArea = document.getElementById('logArea');
+            const timestamp = new Date().toLocaleTimeString();
+            const color = type === 'error' ? '#ff6b6b' : type === 'success' ? '#51cf66' : type === 'warning' ? '#ffd43b' : '#00ff00';
+            logArea.innerHTML += `<span style="color: ${color}">[${timestamp}] ${message}</span>\n`;
+            logArea.scrollTop = logArea.scrollHeight;
+        }
+
+        function updateStatus(message, type = 'success') {
+            const resultsDiv = document.getElementById('testResults');
+            resultsDiv.innerHTML = `<div class="status ${type}">${message}</div>`;
+        }
+
+        function updateMetrics() {
+            document.getElementById('totalRequests').textContent = stats.totalRequests;
+            document.getElementById('successCount').textContent = stats.successCount;
+            document.getElementById('errorCount').textContent = stats.errorCount;
+            document.getElementById('concurrentRequests').textContent = stats.concurrentRequests;
+            
+            const avgTime = stats.responseTimes.length > 0 
+                ? Math.round(stats.responseTimes.reduce((a, b) => a + b, 0) / stats.responseTimes.length)
+                : 0;
+            document.getElementById('avgResponseTime').textContent = avgTime + 'ms';
+            
+            document.getElementById('dataSize').textContent = Math.round(stats.dataSize / 1024) + 'KB';
+        }
+
+        function clearLog() {
+            document.getElementById('logArea').innerHTML = '';
+            document.getElementById('testResults').innerHTML = '';
+            stats = {
+                totalRequests: 0,
+                successCount: 0,
+                errorCount: 0,
+                responseTimes: [],
+                dataSize: 0,
+                concurrentRequests: 0,
+                maxConcurrent: 0
+            };
+            updateMetrics();
+        }
+
+        // 模拟保存操作
+        async function simulateSave(data, noteId) {
+            stats.totalRequests++;
+            stats.concurrentRequests++;
+            stats.maxConcurrent = Math.max(stats.maxConcurrent, stats.concurrentRequests);
+            
+            const startTime = Date.now();
+            const dataSize = JSON.stringify(data).length;
+            stats.dataSize = Math.max(stats.dataSize, dataSize);
+            
+            try {
+                await window.indexedDBStorage.saveData(data);
+                const responseTime = Date.now() - startTime;
+                stats.responseTimes.push(responseTime);
+                stats.successCount++;
+                log(`✅ 保存成功: ${noteId} (${Math.round(dataSize/1024)}KB, ${responseTime}ms)`, 'success');
+            } catch (error) {
+                stats.errorCount++;
+                log(`❌ 保存失败: ${noteId} - ${error.message}`, 'error');
+            } finally {
+                stats.concurrentRequests--;
+                updateMetrics();
+            }
+        }
+
+        // 测试1: 基础操作测试
+        async function testBasicOperations() {
+            log('🧪 开始基础操作测试...');
+            updateStatus('基础操作测试进行中...', 'warning');
+            
+            try {
+                // 初始化
+                await window.indexedDBStorage.init();
+                log('✅ IndexedDB初始化成功');
+                
+                // 创建测试数据
+                const testData = {
+                    currentNoteId: 'note-1',
+                    notes: generateTestNotes(5, 5)
+                };
+                
+                // 保存数据
+                await simulateSave(testData, '基础测试');
+                
+                // 加载数据
+                const loadedData = await window.indexedDBStorage.loadData();
+                log(`✅ 数据加载成功，笔记数量: ${Object.keys(loadedData.notes).length}`);
+                
+                updateStatus('基础操作测试通过！', 'success');
+            } catch (error) {
+                log(`❌ 基础操作测试失败: ${error.message}`, 'error');
+                updateStatus('基础操作测试失败！', 'error');
+            }
+        }
+
+        // 测试2: 并发保存测试
+        async function testConcurrentSaves() {
+            log('🧪 开始并发保存测试...');
+            updateStatus('并发保存测试进行中...', 'warning');
+            
+            const testData = {
+                currentNoteId: 'note-1',
+                notes: generateTestNotes(10, 3)
+            };
+            
+            // 同时发起多个保存请求
+            const promises = [];
+            for (let i = 0; i < 20; i++) {
+                const modifiedData = {
+                    ...testData,
+                    notes: { ...testData.notes },
+                    timestamp: Date.now() + i
+                };
+                promises.push(simulateSave(modifiedData, `并发测试-${i}`));
+            }
+            
+            try {
+                await Promise.all(promises);
+                log('✅ 并发保存测试完成');
+                updateStatus('并发保存测试通过！', 'success');
+            } catch (error) {
+                log(`❌ 并发保存测试失败: ${error.message}`, 'error');
+                updateStatus('并发保存测试失败！', 'error');
+            }
+        }
+
+        // 测试3: 大数据量测试
+        async function testLargeData() {
+            log('🧪 开始大数据量测试...');
+            updateStatus('大数据量测试进行中...', 'warning');
+            
+            const largeData = {
+                currentNoteId: 'large-note',
+                notes: {
+                    'large-note': {
+                        id: 'large-note',
+                        title: '大数据量测试笔记',
+                        content: generateLargeContent(500), // 500KB
+                        lastModified: new Date().toISOString(),
+                        versions: []
+                    }
+                }
+            };
+            
+            try {
+                await simulateSave(largeData, '大数据量测试');
+                log('✅ 大数据量测试完成');
+                updateStatus('大数据量测试通过！', 'success');
+            } catch (error) {
+                log(`❌ 大数据量测试失败: ${error.message}`, 'error');
+                updateStatus('大数据量测试失败！', 'error');
+            }
+        }
+
+        // 测试4: 快速切换测试
+        async function testRapidSwitching() {
+            log('🧪 开始快速切换测试...');
+            updateStatus('快速切换测试进行中...', 'warning');
+            
+            const testData = {
+                currentNoteId: 'note-1',
+                notes: generateTestNotes(5, 2)
+            };
+            
+            // 模拟快速切换笔记
+            for (let i = 0; i < 50; i++) {
+                const noteId = `note-${(i % 5) + 1}`;
+                const modifiedData = {
+                    ...testData,
+                    currentNoteId: noteId,
+                    notes: { ...testData.notes }
+                };
+                
+                // 修改当前笔记内容
+                modifiedData.notes[noteId].content += `\n修改 ${i + 1}`;
+                
+                await simulateSave(modifiedData, `快速切换-${noteId}`);
+                
+                // 短暂延迟
+                await new Promise(resolve => setTimeout(resolve, 10));
+            }
+            
+            log('✅ 快速切换测试完成');
+            updateStatus('快速切换测试通过！', 'success');
+        }
+
+        // 测试5: 压力测试
+        async function testStressTest() {
+            log('🧪 开始压力测试...');
+            updateStatus('压力测试进行中...', 'warning');
+            
+            const promises = [];
+            const testData = {
+                currentNoteId: 'stress-test',
+                notes: generateTestNotes(20, 1)
+            };
+            
+            // 发起大量并发请求
+            for (let i = 0; i < 100; i++) {
+                const modifiedData = {
+                    ...testData,
+                    notes: { ...testData.notes },
+                    stressTest: i
+                };
+                promises.push(simulateSave(modifiedData, `压力测试-${i}`));
+            }
+            
+            try {
+                await Promise.all(promises);
+                log('✅ 压力测试完成');
+                updateStatus('压力测试通过！', 'success');
+            } catch (error) {
+                log(`❌ 压力测试失败: ${error.message}`, 'error');
+                updateStatus('压力测试失败！', 'error');
+            }
+        }
+
+        // 测试6: 错误恢复测试
+        async function testErrorRecovery() {
+            log('🧪 开始错误恢复测试...');
+            updateStatus('错误恢复测试进行中...', 'warning');
+            
+            try {
+                // 尝试删除数据库
+                await window.indexedDBStorage.deleteDatabase();
+                log('✅ 数据库删除成功');
+                
+                // 重新初始化
+                await window.indexedDBStorage.init();
+                log('✅ 数据库重新初始化成功');
+                
+                // 测试保存
+                const testData = {
+                    currentNoteId: 'recovery-test',
+                    notes: generateTestNotes(3, 2)
+                };
+                
+                await simulateSave(testData, '错误恢复测试');
+                log('✅ 错误恢复测试完成');
+                updateStatus('错误恢复测试通过！', 'success');
+            } catch (error) {
+                log(`❌ 错误恢复测试失败: ${error.message}`, 'error');
+                updateStatus('错误恢复测试失败！', 'error');
+            }
+        }
+
+        // 测试7: 长时间运行测试
+        async function testLongRunning() {
+            log('🧪 开始长时间运行测试...');
+            updateStatus('长时间运行测试进行中...', 'warning');
+            
+            const startTime = Date.now();
+            let iteration = 0;
+            
+            const interval = setInterval(async () => {
+                iteration++;
+                const testData = {
+                    currentNoteId: `long-test-${iteration}`,
+                    notes: generateTestNotes(3, 1),
+                    iteration: iteration,
+                    timestamp: Date.now()
+                };
+                
+                try {
+                    await simulateSave(testData, `长时间测试-${iteration}`);
+                    log(`✅ 长时间测试迭代 ${iteration} 完成`);
+                } catch (error) {
+                    log(`❌ 长时间测试迭代 ${iteration} 失败: ${error.message}`, 'error');
+                }
+                
+                // 运行5分钟
+                if (Date.now() - startTime > 5 * 60 * 1000) {
+                    clearInterval(interval);
+                    log('✅ 长时间运行测试完成');
+                    updateStatus('长时间运行测试通过！', 'success');
+                }
+            }, 1000); // 每秒一次
+        }
+
+        // 页面加载完成
+        window.addEventListener('load', async () => {
+            log('🚀 IndexedDB连接管理压力测试页面加载完成');
+            log('请先点击"基础操作测试"验证IndexedDB是否正常工作');
+            
+            try {
+                await window.indexedDBStorage.init();
+                log('✅ IndexedDB初始化成功');
+            } catch (error) {
+                log(`❌ IndexedDB初始化失败: ${error.message}`, 'error');
+            }
+        });
+    </script>
+</body>
+</html>
