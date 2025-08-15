@@ -12,6 +12,67 @@ const notesData = {
     notes: {}
 };
 
+// ========== 会话状态档案馆 ==========
+const sessionState = new Map();
+
+// 会话状态对象结构
+class SessionState {
+    constructor(noteId) {
+        this.noteId = noteId;
+        this.content = '';
+        this.history = null;
+        this.cursor = null;
+        this.scrollPosition = null;
+        this.mode = 'preview';
+        this.lastAccess = Date.now();
+        this.isDirty = false;
+    }
+    
+    // 从CodeMirror实例创建会话状态
+    static fromCodeMirror(noteId, cmEditor) {
+        const state = new SessionState(noteId);
+        state.content = cmEditor.getValue();
+        state.history = cmEditor.getHistory();
+        state.cursor = cmEditor.getCursor();
+        state.scrollPosition = cmEditor.getScrollInfo();
+        state.mode = 'edit';
+        state.isDirty = !cmEditor.isClean();
+        state.lastAccess = Date.now();
+        return state;
+    }
+    
+    // 恢复到CodeMirror实例
+    restoreToCodeMirror(cmEditor) {
+        try {
+            if (this.history) {
+                cmEditor.setHistory(this.history);
+            }
+            if (this.cursor) {
+                cmEditor.setCursor(this.cursor);
+            }
+            if (this.scrollPosition) {
+                cmEditor.scrollTo(this.scrollPosition.left, this.scrollPosition.top);
+            }
+            console.log('会话状态恢复成功');
+            return true;
+        } catch (error) {
+            console.error('会话状态恢复失败:', error);
+            return false;
+        }
+    }
+}
+
+// 清理过期会话状态（超过1小时未访问）
+function cleanupSessionState() {
+    const oneHourAgo = Date.now() - 3600000;
+    for (const [noteId, state] of sessionState) {
+        if (state.lastAccess < oneHourAgo) {
+            sessionState.delete(noteId);
+            console.log(`清理过期会话状态: ${noteId}`);
+        }
+    }
+}
+
 // ========== DOM 元素获取 ==========
 const notesListEl = document.getElementById('notesList');
 const addNoteBtn = document.getElementById('addNoteBtn');
@@ -995,9 +1056,13 @@ function renderNotesList() {
         const note = notesData.notes[noteId];
         const li = document.createElement('li');
         li.className = noteId === notesData.currentNoteId ? 'active' : '';
+        // 在创建笔记项内容时添加会话状态指示器
+        const hasSession = sessionState.has(noteId);
+        const sessionClass = hasSession ? 'has-session' : '';
+        
         // 创建笔记项内容
         li.innerHTML = `
-            <div class="note-item-content">
+            <div class="note-item-content ${sessionClass}">
                 <div class="note-title">${note.title || '未命名笔记'}</div>
                 <div class="note-meta">
                     <span class="note-date">${new Date(note.lastModified || Date.now()).toLocaleDateString()}</span>
@@ -1009,22 +1074,26 @@ function renderNotesList() {
         // 切换笔记事件
         li.onclick = () => {
             if (notesData.currentNoteId !== noteId) {
-                // 新增：编辑模式下切换笔记时自动保存当前笔记
+                // 新增：编辑模式下切换笔记时保存会话状态
                 const contentArea = document.querySelector('.content-area');
-                if (contentArea && contentArea.classList.contains('editing-mode')) {
-                    // 先保存当前笔记，然后切换到目标笔记
-                    saveVersion(() => {
-                        // 保存完成后的回调：切换到目标笔记
-                        switchNote(noteId);
-                    }).catch(error => {
-                        console.error('切换笔记时自动保存失败:', error);
-                        // 即使保存失败，也要切换到目标笔记
-                        switchNote(noteId);
-                    });
-                } else {
-                    // 不在编辑模式，直接切换
-                    switchNote(noteId);
+                const wasInEditMode = contentArea && contentArea.classList.contains('editing-mode');
+                
+                if (wasInEditMode) {
+                    // 保存当前笔记的会话状态
+                    if (cmEditor) {
+                        const sessionEntry = SessionState.fromCodeMirror(notesData.currentNoteId, cmEditor);
+                        sessionState.set(notesData.currentNoteId, sessionEntry);
+                        console.log(`保存会话状态: ${notesData.currentNoteId}`);
+                        
+                        // 执行静默保存，确保数据安全
+                        saveToLocalStorage().catch(error => {
+                            console.error('切换笔记时静默保存失败:', error);
+                        });
+                    }
                 }
+                
+                // 切换到目标笔记
+                switchNote(noteId);
             }
         };
         // 删除按钮
@@ -1061,31 +1130,41 @@ function renderNotesList() {
     renderTagsList();
 }
 
-function switchNote(noteId) {
+function switchNote(noteId) { // 删除了 wasInEditMode 参数
     notesData.currentNoteId = noteId;
     const note = notesData.notes[noteId];
     
-    // --- 修复2：先销毁 Codemirror，再设置 textarea value，避免内容继承 ---
+    // 销毁可能存在的旧编辑器实例
     if (cmEditor) {
-        cmEditor.toTextArea(); // 恢复 textarea，这是唯一需要的清理方法
+        cmEditor.toTextArea();
         cmEditor = null;
     }
     
-    // 更新笔记内容显示
+    // 更新基础UI元素
     noteTitleEl.value = note.title || '';
     noteEditorEl.value = note.content || '';
-    noteEditorEl.style.display = 'none';
-    notePreviewEl.style.display = 'block';
-    noteEditorEl.classList.remove('editing');
-    editBtn.innerHTML = '<i class="fas fa-edit"></i><span class="btn-text"> 编辑笔记</span>';
     
-    // 渲染Markdown内容
-    renderMarkdown(note.content || '');
-    updateWordCount();
+    // 【核心修复】决策逻辑只依赖于 sessionState
+    const sessionEntry = sessionState.get(noteId);
     
-    // 显示版本历史（如果面板是打开的）
+    // 如果档案馆里有这篇笔记的编辑会话存档...
+    if (sessionEntry && sessionEntry.mode === 'edit') {
+        // ...则直接为它恢复编辑模式
+        enterEditMode(true); // 传入 true 表示是恢复会话
+    } else {
+        // ...否则，进入标准的预览模式
+        enterPreviewMode();
+    }
+    
+    // 更新其他UI部分
     if (versionsPanelEl.classList.contains('active')) {
         showVersions();
+    }
+    updateSidebarActiveState(noteId);
+    updateAllDirtyIndicators(); // 更新编辑按钮的红点状态
+
+    if (isMobile() && sidebar && !sidebar.classList.contains('drawer-collapsed')) {
+        sidebar.classList.add('drawer-collapsed');
     }
     
     // 保存当前状态
@@ -1093,20 +1172,131 @@ function switchNote(noteId) {
     saveToLocalStorage().catch(error => {
         console.error('切换笔记后保存失败:', error);
     });
-    
-    // --- 优化：只更新侧边栏的active状态，不重新渲染整个列表 ---
-    updateSidebarActiveState(noteId);
-    
-    // --- 修复2补充：切换笔记时移除编辑模式类，保证预览背景色 ---
-    const mainPanel = document.querySelector('.note-main-panel');
-    if (mainPanel) mainPanel.scrollTop = 0;
+}
+
+// 新增：进入预览模式的函数
+function enterPreviewMode() {
     const contentArea = document.querySelector('.content-area');
-    if (contentArea) contentArea.classList.remove('editing-mode');
-    if (contentArea) contentArea.scrollTop = 0;
     
-    // --- 移动端优化：切换笔记后自动关闭侧边栏 ---
-    if (window.innerWidth <= 768 && sidebar && !sidebar.classList.contains('drawer-collapsed')) {
-        sidebar.classList.add('drawer-collapsed');
+    if (cmEditor) {
+        cmEditor.getWrapperElement().style.display = 'none';
+    }
+    
+    // 【添加此行】确保原始的 textarea 也被隐藏
+    noteEditorEl.style.display = 'none';
+    
+    notePreviewEl.style.display = 'block';
+    if (contentArea) contentArea.classList.remove('editing-mode');
+    onEditModeChange(false);
+    
+    // 确保渲染正确的内容并更新按钮状态
+    if (notesData.currentNoteId) {
+        renderMarkdown(notesData.notes[notesData.currentNoteId].content);
+        updateEditButtonState();
+    }
+}
+
+// 新增：进入编辑模式的函数
+function enterEditMode(isRestoringSession = false) {
+    const contentArea = document.querySelector('.content-area');
+    notePreviewEl.style.display = 'none';
+    if(contentArea) contentArea.classList.add('editing-mode');
+    onEditModeChange(true);
+
+    try {
+        if (!cmEditor) {
+            const cmConfig = {
+                mode: 'markdown',
+                lineNumbers: false,
+                lineWrapping: true,
+                theme: 'default',
+                viewportMargin: isMobile() ? Infinity : 10,
+                autofocus: true,
+                dragDrop: false,
+                readOnly: false,
+                tabIndex: 0
+            };
+            if (isMobile()) {
+                cmConfig.inputStyle = 'contenteditable';
+                cmConfig.cursorScrollMargin = 60;
+            }
+            cmEditor = CodeMirror.fromTextArea(noteEditorEl, cmConfig);
+            cmEditor.setSize('100%', '100%');
+            if (window.setupCodeMirrorAutoSave) setupCodeMirrorAutoSave();
+        }
+        cmEditor.getWrapperElement().style.display = 'block';
+        cmEditor.setValue(noteEditorEl.value);
+
+        const sessionEntry = sessionState.get(notesData.currentNoteId);
+        if (isRestoringSession && sessionEntry) {
+            sessionEntry.restoreToCodeMirror(cmEditor);
+        } else {
+            // 如果不是恢复会话，或者找不到会话，就建立一个新的干净起点
+            cmEditor.markClean();
+        }
+
+        setTimeout(() => {
+            cmEditor.refresh();
+            cmEditor.focus();
+            if (isRestoringSession && sessionEntry && sessionEntry.scrollPosition) {
+                 cmEditor.scrollTo(sessionEntry.scrollPosition.left, sessionEntry.scrollPosition.top);
+            } else if (!isRestoringSession) {
+                cmEditor.setCursor(cmEditor.lineCount(), 0);
+            }
+        }, 0);
+
+    } catch (error) {
+        console.error("CodeMirror实例创建或恢复失败:", error);
+        alert("编辑器加载失败，请刷新页面重试。");
+        enterPreviewMode(); 
+    }
+    updateEditButtonState();
+}
+
+// 【最终版】更新编辑/预览按钮状态的函数
+function updateEditButtonState() {
+    const hasSession = sessionState.has(notesData.currentNoteId) && sessionState.get(notesData.currentNoteId).mode === 'edit';
+    const contentArea = document.querySelector('.content-area');
+    const isEditing = contentArea && contentArea.classList.contains('editing-mode');
+
+    if (isEditing) {
+        editBtn.innerHTML = '<i class="fas fa-eye"></i><span class="btn-text"> 预览笔记</span>';
+        editBtn.classList.remove('has-session');
+    } else {
+        editBtn.innerHTML = '<i class="fas fa-edit"></i><span class="btn-text"> 编辑笔记</span>';
+        if (hasSession) {
+            editBtn.classList.add('has-session');
+        } else {
+            editBtn.classList.remove('has-session');
+        }
+    }
+}
+
+// 新增：更新所有"脏"状态视觉提示的函数
+function updateAllDirtyIndicators() {
+    updateEditButtonState();
+    renderNotesList(); // 重新渲染列表以更新侧栏的红点
+}
+
+// 新增：清理所有会话状态
+function clearAllSessions() {
+    if (confirm('确定要清理所有未完成的编辑会话吗？这将丢失所有未保存的编辑历史。')) {
+        sessionState.clear();
+        updateEditButtonState();
+        renderNotesList(); // 重新渲染以更新视觉指示器
+        showToast('已清理所有编辑会话', 3000);
+        console.log('所有会话状态已清理');
+    }
+}
+
+// 新增：清理单个会话状态
+function clearSession(noteId) {
+    if (sessionState.has(noteId)) {
+        sessionState.delete(noteId);
+        updateEditButtonState();
+        renderNotesList();
+        showToast('已清理该笔记的编辑会话', 2000);
+        console.log(`会话状态已清理: ${noteId}`);
     }
 }
 
@@ -1451,119 +1641,26 @@ function setupEventListeners() {
     editBtn.addEventListener('click', async () => {
         const mainPanel = document.querySelector('.note-main-panel');
         const scrollTop = mainPanel.scrollTop;
-        const isEditing = cmEditor && cmEditor.getWrapperElement() && cmEditor.getWrapperElement().style.display !== 'none';
         const contentArea = document.querySelector('.content-area');
-        
-        if (!isEditing) {
-            // 进入编辑模式
-            noteEditorEl.style.display = 'none';
-            notePreviewEl.style.display = 'none';
-            noteEditorEl.classList.add('editing');
-            editBtn.innerHTML = '<i class="fas fa-eye"></i><span class="btn-text"> 预览笔记</span>';
+        const isEditing = contentArea && contentArea.classList.contains('editing-mode');
+
+        if (isEditing) {
+            // 正在编辑，要切换到预览。决策依据是 sessionState。
+            const hasSession = sessionState.has(notesData.currentNoteId);
             
-            if (!cmEditor) {
-                // 统一架构+移动端降级配置
-                const cmConfig = {
-                    mode: 'markdown',
-                    lineNumbers: false,
-                    lineWrapping: true,
-                    theme: 'default',
-                    viewportMargin: isMobile() ? Infinity : 10,
-                    autofocus: true,
-                    dragDrop: false,
-                    readOnly: false,
-                    tabIndex: 0
-                };
-                if (isMobile()) {
-                    cmConfig.inputStyle = 'contenteditable';
-                    cmConfig.cursorScrollMargin = 60;
-                }
-                cmEditor = CodeMirror.fromTextArea(noteEditorEl, cmConfig);
-                cmEditor.setSize('100%', '100%');
-                
-                // 移动端同步机制
-                if (isMobile()) {
-                    const syncToTextarea = () => {
-                        noteEditorEl.value = cmEditor.getValue();
-                    };
-                    cmEditor.on('change', syncToTextarea);
-                    cmEditor.on('blur', syncToTextarea);
-                    cmEditor.on('scroll', syncToTextarea);
-                    cmEditor.on('touchend', syncToTextarea);
-                    
-                    // 光标体验优化
-                    const ensureCursorVisible = () => {
-                        cmEditor.refresh();
-                        cmEditor.scrollIntoView(cmEditor.getCursor());
-                    };
-                    cmEditor.on('focus', ensureCursorVisible);
-                    cmEditor.on('inputRead', ensureCursorVisible);
-                    cmEditor.on('touchend', ensureCursorVisible);
-                    window.addEventListener('resize', ensureCursorVisible);
-                }
-                
-                // 设置CodeMirror的自动保存
-                if (window.setupCodeMirrorAutoSave) {
-                    window.setupCodeMirrorAutoSave();
+            if (hasSession) {
+                // 只有存在未完成的会话时，才需要创建新版本
+                try {
+                    await saveVersion(); 
+                } catch (error) {
+                    console.error("保存新版本失败:", error);
                 }
             }
-            
-            // 始终以当前textarea内容为准
-            cmEditor.setValue(noteEditorEl.value);
-            
-            // 标记CodeMirror为干净状态（刚加载的笔记内容）
-            cmEditor.markClean();
-            console.log('CodeMirror已标记为干净状态（新加载的笔记）');
-            
-            cmEditor.getWrapperElement().style.display = 'block';
-            if(contentArea) contentArea.classList.add('editing-mode');
+            enterPreviewMode();
 
-            // ===================================================
-            // ===========   改善光标问题的核心代码   ===========
-            // ===================================================
-            // 使用 setTimeout 将操作推迟到下一个事件循环
-            // 确保编辑器在 DOM 中已完全渲染并可见
-            setTimeout(() => {
-                // 1. 强制刷新编辑器，使其重新计算布局
-                cmEditor.refresh(); 
-                // 2. 显式地将焦点设置到编辑器上
-                cmEditor.focus();
-                // 3. (可选但推荐) 将光标移动到文档末尾，提供一个明确的初始位置
-                // 如果你希望光标在开头，可以使用 {line: 0, ch: 0}
-                cmEditor.setCursor(cmEditor.lineCount(), 0); 
-            }, 0);
-            // ===================================================
-
-            // 新增：进入编辑模式时显示工具条
-            onEditModeChange(true);
         } else {
-            // 退出编辑模式，进入预览模式
-            const newContent = cmEditor.getValue();
-            noteEditorEl.value = newContent; // 同步textarea内容
-
-            // 使用CodeMirror的智能脏状态检查，替代字符串比较
-            const isDirty = cmEditor && !cmEditor.isClean();
-            
-            if (isDirty) {
-                // 内容已更改，调用保存函数。该函数内部会负责渲染。
-                console.log('检测到内容变化，执行保存');
-                await saveVersion();
-            } else if (notesData.currentNoteId) {
-                // 内容未更改，但仍需确保预览区显示的是正确内容。
-                console.log('内容未变化，直接切换到预览');
-                renderMarkdown(notesData.notes[notesData.currentNoteId].content);
-            }
-
-            // --- 关键改动 ---
-            // 在确保内容已经渲染到 notePreviewEl 之后，再执行UI切换
-            cmEditor.getWrapperElement().style.display = 'none';
-            notePreviewEl.style.display = 'block';
-            noteEditorEl.classList.remove('editing');
-            editBtn.innerHTML = '<i class="fas fa-edit"></i><span class="btn-text"> 编辑笔记</span>';
-            
-            if(contentArea) contentArea.classList.remove('editing-mode');
-            // 新增：退出编辑模式时隐藏工具条
-            onEditModeChange(false);
+            // 正在预览，要切换到编辑
+            enterEditMode(sessionState.has(notesData.currentNoteId));
         }
         
         // 强制恢复主页面滚动条位置
@@ -2279,21 +2376,10 @@ function loadScript(src) {
 }
 
 // ========== 版本自动保存（智能脏状态管理） ==========
-async function saveVersion(onComplete) {
+async function saveVersion() {
     if (!notesData.currentNoteId) return;
     const note = notesData.notes[notesData.currentNoteId];
-    
-    // 获取当前编辑器内容
-    let currentContent = '';
-    if (cmEditor && cmEditor.getWrapperElement().style.display !== 'none') {
-        // 如果CodeMirror编辑器正在使用，从中获取内容
-        currentContent = cmEditor.getValue();
-        // 同步到textarea
-        noteEditorEl.value = currentContent;
-    } else {
-        // 否则从textarea获取内容
-        currentContent = noteEditorEl.value;
-    }
+    const currentContent = cmEditor.getValue();
     
     // 生成版本信息
     const version = {
@@ -2308,32 +2394,28 @@ async function saveVersion(onComplete) {
     
     if (!note.versions) note.versions = [];
     note.versions.unshift(version);
-    
-    // 更新笔记内容
     note.content = currentContent;
     note.lastModified = new Date().toISOString();
-    
-    // 等待数据保存完成
+
     await saveToLocalStorage();
-    
-    // 保存成功后，标记CodeMirror为"干净"状态
+
+    // 关键：在成功保存后，将当前状态标记为新的"干净"点
     if (cmEditor) {
         cmEditor.markClean();
-        console.log('CodeMirror已标记为干净状态（版本保存后）');
     }
     
-    // 如果提供了回调函数，执行回调；否则执行默认的UI更新
-    if (typeof onComplete === 'function') {
-        onComplete();
-    } else {
-        // 默认行为：保存成功后才更新UI和提示
-        renderMarkdown(currentContent);
-        updateWordCount();
-        renderNotesList();
-        showToast('已自动保存并生成新版本');
+    // 关键：从会话档案馆中删除该笔记的存档
+    if (sessionState.has(notesData.currentNoteId)) {
+        sessionState.delete(notesData.currentNoteId);
     }
     
-    console.log('版本保存完成，当前版本数:', note.versions.length);
+    // 关键：调用统一的UI更新函数，消除所有红点
+    updateAllDirtyIndicators();
+
+    // 更新预览区和提示
+    showToast('已自动保存并生成新版本');
+    
+    console.log(`版本保存完成，当前版本数: ${note.versions.length}`);
 }
 
 // ========== 移动端浮动工具条逻辑 ==========

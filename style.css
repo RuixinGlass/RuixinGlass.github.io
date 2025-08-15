@@ -347,6 +347,22 @@ pre, code {
 #notesList li.active .note-meta {
   opacity: 0.9;
 }
+
+/* 笔记列表中的会话状态指示器 */
+.note-item-content.has-session {
+  position: relative;
+}
+
+.note-item-content.has-session::before {
+  content: '●';
+  position: absolute;
+  left: -15px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #ff6b6b;
+  font-size: 12px;
+  animation: pulse 2s infinite;
+}
 /* ========== 主内容区 ========== */
 .main-content-wrapper {
   display: flex;
@@ -476,6 +492,31 @@ pre, code {
 }
 .note-actions button:hover i {
   color: var(--accent-color) !important;
+}
+
+/* 会话状态指示器样式 */
+.note-actions button.has-session {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  position: relative;
+}
+
+.note-actions button.has-session::after {
+  content: '';
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  width: 8px;
+  height: 8px;
+  background: #ff6b6b;
+  border-radius: 50%;
+  border: 2px solid #fff;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.2); opacity: 0.7; }
+  100% { transform: scale(1); opacity: 1; }
 }
 
 /* ========== 笔记内容区 ========== */
@@ -992,6 +1033,31 @@ pre, code {
   .btn-text, .note-actions .btn-text, #editBtn .btn-text {
     display: none !important;
   }
+  
+  /* 会话状态指示器样式 */
+  #editBtn.has-session {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+    position: relative;
+  }
+  
+  #editBtn.has-session::after {
+    content: '';
+    position: absolute;
+    top: -2px;
+    right: -2px;
+    width: 8px;
+    height: 8px;
+    background: #ff6b6b;
+    border-radius: 50%;
+    border: 2px solid #fff;
+    animation: pulse 2s infinite;
+  }
+  
+  @keyframes pulse {
+    0% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.2); opacity: 0.7; }
+    100% { transform: scale(1); opacity: 1; }
+  }
   .note-actions button {
     min-width: 0;
     padding: 0.6em 0.6em;
@@ -1078,21 +1144,16 @@ pre, code {
   .content-area.editing-mode {
     /* 让 content-area 自身撑满 note-main-panel 的剩余空间 */
     flex: 1;
-    /* 防止 content-area 自身出现滚动条，滚动应在编辑器内部 */
-    /*overflow: hidden;*/
+    /* 关键修复：移除外层滚动，将滚动权完全交给内部的CodeMirror */
+    overflow: hidden;
     background: #f8f8f5;
     transition: background 0.2s;
   }
 
-  /*.content-area.editing-mode .CodeMirror {*/
-    /* 让 CodeMirror 组件占满其父容器（content-area）*/
-    /*height: 100% !important;
-  }*/
-
-  /*.content-area.editing-mode .CodeMirror-scroll {*/
-    /* 这是关键：覆盖 CodeMirror 默认的 auto-height 样式（overflow: visible），改为让编辑器内部可以独立滚动。*/
-    /*overflow-y: auto !important;
-  }*/
+  .content-area.editing-mode .CodeMirror {
+    /* 关键修复：让 CodeMirror 编辑器的高度占满其父容器（content-area）*/
+    height: 100% !important;
+  }
   .markdown-body, #notePreview, #noteEditor {
     padding-left: 0.1em;
     padding-right: 0.1em;

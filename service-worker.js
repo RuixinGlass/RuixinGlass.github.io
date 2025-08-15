@@ -1,4 +1,4 @@
-const CACHE_NAME = 'note-app-cache-v7'; // 更新版本号 - 修复IndexedDB连接管理问题
+const CACHE_NAME = 'note-app-cache-v11'; // 更新版本号 - 脏状态判定和UI显示修复
 const urlsToCache = [
   'index.html',
   'style.css',
