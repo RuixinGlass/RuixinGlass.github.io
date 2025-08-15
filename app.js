@@ -1645,21 +1645,29 @@ function setupEventListeners() {
         const isEditing = contentArea && contentArea.classList.contains('editing-mode');
 
         if (isEditing) {
-            // 正在编辑，要切换到预览。决策依据是 sessionState。
-            const hasSession = sessionState.has(notesData.currentNoteId);
-            
-            if (hasSession) {
-                // 只有存在未完成的会话时，才需要创建新版本
+            // 场景：正在编辑，希望切换到预览模式
+
+            // 正确的逻辑：只关心当前编辑器内容是否被修改过 ("isDirty")
+            // !cmEditor.isClean() 便是 "isDirty" 的准确判断
+            if (cmEditor && !cmEditor.isClean()) {
                 try {
+                    // 因为内容是"脏"的，所以创建新版本
+                    console.log('检测到内容修改，正在创建新版本...');
                     await saveVersion(); 
                 } catch (error) {
                     console.error("保存新版本失败:", error);
+                    // 即使保存失败，也应继续切换到预览模式，确保UI行为一致
                 }
+            } else {
+                console.log('内容未修改，无需创建版本，直接切换到预览。');
             }
+            
+            // 无论是否保存，最后都统一进入预览模式
             enterPreviewMode();
 
         } else {
-            // 正在预览，要切换到编辑
+            // 场景：正在预览，希望切换到编辑模式
+            // enterEditMode 会自动根据是否存在会话存档来决定是"全新编辑"还是"恢复编辑"
             enterEditMode(sessionState.has(notesData.currentNoteId));
         }
         

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'note-app-cache-v11'; // 更新版本号 - 脏状态判定和UI显示修复
+const CACHE_NAME = 'note-app-cache-v12'; // 更新版本号 - 核心版本创建逻辑修复
 const urlsToCache = [
   'index.html',
   'style.css',
