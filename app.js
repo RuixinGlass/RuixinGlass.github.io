@@ -1510,6 +1510,11 @@ function setupEventListeners() {
             
             // 始终以当前textarea内容为准
             cmEditor.setValue(noteEditorEl.value);
+            
+            // 标记CodeMirror为干净状态（刚加载的笔记内容）
+            cmEditor.markClean();
+            console.log('CodeMirror已标记为干净状态（新加载的笔记）');
+            
             cmEditor.getWrapperElement().style.display = 'block';
             if(contentArea) contentArea.classList.add('editing-mode');
 
@@ -1536,14 +1541,16 @@ function setupEventListeners() {
             const newContent = cmEditor.getValue();
             noteEditorEl.value = newContent; // 同步textarea内容
 
-            const hasChanged = notesData.currentNoteId &&
-                notesData.notes[notesData.currentNoteId].content !== newContent;
-
-            if (hasChanged) {
+            // 使用CodeMirror的智能脏状态检查，替代字符串比较
+            const isDirty = cmEditor && !cmEditor.isClean();
+            
+            if (isDirty) {
                 // 内容已更改，调用保存函数。该函数内部会负责渲染。
+                console.log('检测到内容变化，执行保存');
                 await saveVersion();
             } else if (notesData.currentNoteId) {
                 // 内容未更改，但仍需确保预览区显示的是正确内容。
+                console.log('内容未变化，直接切换到预览');
                 renderMarkdown(notesData.notes[notesData.currentNoteId].content);
             }
 
@@ -2271,7 +2278,7 @@ function loadScript(src) {
     });
 }
 
-// ========== 版本自动保存 ==========
+// ========== 版本自动保存（智能脏状态管理） ==========
 async function saveVersion(onComplete) {
     if (!notesData.currentNoteId) return;
     const note = notesData.notes[notesData.currentNoteId];
@@ -2288,7 +2295,6 @@ async function saveVersion(onComplete) {
         currentContent = noteEditorEl.value;
     }
     
-    // 强制保存，不管内容是否变化
     // 生成版本信息
     const version = {
         hash: generateVersionHash(currentContent),
@@ -2309,6 +2315,12 @@ async function saveVersion(onComplete) {
     
     // 等待数据保存完成
     await saveToLocalStorage();
+    
+    // 保存成功后，标记CodeMirror为"干净"状态
+    if (cmEditor) {
+        cmEditor.markClean();
+        console.log('CodeMirror已标记为干净状态（版本保存后）');
+    }
     
     // 如果提供了回调函数，执行回调；否则执行默认的UI更新
     if (typeof onComplete === 'function') {

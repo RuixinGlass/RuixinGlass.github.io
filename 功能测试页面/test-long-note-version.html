@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>长笔记版本创建测试</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+        .test-section {
+            padding: 20px;
+            border-bottom: 1px solid #eee;
+        }
+        .test-section:last-child {
+            border-bottom: none;
+        }
+        .test-button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            margin: 5px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .test-button:hover {
+            background: #45a049;
+        }
+        .test-button.warning {
+            background: #ff9800;
+        }
+        .test-button.warning:hover {
+            background: #e68900;
+        }
+        .test-button.danger {
+            background: #f44336;
+        }
+        .test-button.danger:hover {
+            background: #da190b;
+        }
+        .log-area {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 15px;
+            height: 300px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            white-space: pre-wrap;
+        }
+        .status {
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .status.warning {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+        .editor-container {
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .editor-toolbar {
+            background: #f8f9fa;
+            padding: 10px;
+            border-bottom: 1px solid #ddd;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        .editor-content {
+            min-height: 200px;
+            padding: 15px;
+            border: none;
+            outline: none;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            line-height: 1.5;
+            resize: vertical;
+        }
+        .test-results {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-top: 20px;
+        }
+        .result-card {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 15px;
+        }
+        .result-card h4 {
+            margin-top: 0;
+            color: #495057;
+        }
+        .version-list {
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 10px;
+            background: #f9f9f9;
+        }
+        .version-item {
+            padding: 5px;
+            margin: 2px 0;
+            border-radius: 3px;
+            background: white;
+            border-left: 3px solid #4CAF50;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🧪 长笔记版本创建测试</h1>
+            <p>测试智能脏状态管理是否解决了长笔记版本创建问题</p>
+        </div>
+
+        <div class="test-section">
+            <h3>测试说明</h3>
+            <p>这个测试页面用于验证智能脏状态管理功能是否能正确解决长笔记版本创建问题。</p>
+            <p><strong>问题背景：</strong>在长笔记（如三万字）中，只有修改开头部分才能创建新版本，修改中间或结尾部分时不会创建新版本。</p>
+            <p><strong>解决方案：</strong>使用CodeMirror的智能脏状态管理，替代字符串比较。</p>
+        </div>
+
+        <div class="test-section">
+            <h3>测试步骤</h3>
+            <ol>
+                <li>点击"生成长测试内容"按钮创建模拟的长笔记</li>
+                <li>在编辑器中修改不同位置的内容</li>
+                <li>点击"模拟切换到预览"按钮</li>
+                <li>观察是否成功创建新版本</li>
+                <li>查看版本历史和测试结果</li>
+            </ol>
+            
+            <button class="test-button" onclick="generateLongContent()">生成长测试内容</button>
+            <button class="test-button" onclick="simulateEditMode()">模拟进入编辑模式</button>
+            <button class="test-button warning" onclick="modifyBeginning()">修改开头部分</button>
+            <button class="test-button warning" onclick="modifyMiddle()">修改中间部分</button>
+            <button class="test-button warning" onclick="modifyEnd()">修改结尾部分</button>
+            <button class="test-button" onclick="simulateSwitchToPreview()">模拟切换到预览</button>
+            <button class="test-button danger" onclick="clearLog()">清空日志</button>
+        </div>
+
+        <div class="test-section">
+            <h3>编辑器测试区域</h3>
+            <div class="editor-container">
+                <div class="editor-toolbar">
+                    <span>当前状态: <span id="currentState">未初始化</span></span>
+                    <span>内容长度: <span id="contentLength">0</span> 字符</span>
+                    <span>版本数量: <span id="versionCount">0</span></span>
+                    <span>编辑模式: <span id="editMode">否</span></span>
+                </div>
+                <textarea id="testEditor" class="editor-content" placeholder="点击'生成长测试内容'开始测试..."></textarea>
+            </div>
+        </div>
+
+        <div class="test-results">
+            <div class="result-card">
+                <h4>测试结果</h4>
+                <div id="testResults"></div>
+            </div>
+            <div class="result-card">
+                <h4>版本历史</h4>
+                <div id="versionList" class="version-list"></div>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h3>详细日志</h3>
+            <div id="logArea" class="log-area"></div>
+        </div>
+    </div>
+
+    <script>
+        // 模拟数据
+        let testData = {
+            currentNoteId: 'test-long-note',
+            notes: {
+                'test-long-note': {
+                    id: 'test-long-note',
+                    title: '长测试笔记',
+                    content: '',
+                    lastModified: new Date().toISOString(),
+                    versions: []
+                }
+            }
+        };
+
+        // 模拟CodeMirror状态
+        let mockCodeMirror = {
+            content: '',
+            isDirty: false,
+            isClean: function() {
+                return !this.isDirty;
+            },
+            markClean: function() {
+                this.isDirty = false;
+                log('✅ CodeMirror已标记为干净状态');
+            },
+            getValue: function() {
+                return this.content;
+            },
+            setValue: function(value) {
+                this.content = value;
+                this.isDirty = false;
+                log('📝 CodeMirror内容已设置，标记为干净状态');
+            }
+        };
+
+        let isInEditMode = false;
+
+        function log(message) {
+            const logArea = document.getElementById('logArea');
+            const timestamp = new Date().toLocaleTimeString();
+            logArea.innerHTML += `[${timestamp}] ${message}\n`;
+            logArea.scrollTop = logArea.scrollHeight;
+        }
+
+        function updateStatus(message, type = 'success') {
+            document.getElementById('testResults').innerHTML = 
+                `<div class="status ${type}">${message}</div>`;
+        }
+
+        function updateEditorInfo() {
+            document.getElementById('contentLength').textContent = mockCodeMirror.content.length;
+            document.getElementById('versionCount').textContent = testData.notes['test-long-note'].versions.length;
+            document.getElementById('editMode').textContent = isInEditMode ? '是' : '否';
+            document.getElementById('currentState').textContent = 
+                mockCodeMirror.isDirty ? '已修改' : '干净';
+        }
+
+        function updateVersionList() {
+            const versionList = document.getElementById('versionList');
+            const versions = testData.notes['test-long-note'].versions;
+            
+            if (versions.length === 0) {
+                versionList.innerHTML = '<div class="version-item">暂无版本</div>';
+                return;
+            }
+            
+            versionList.innerHTML = versions.map((version, index) => `
+                <div class="version-item">
+                    <strong>版本 ${index + 1}</strong><br>
+                    时间: ${new Date(version.timestamp).toLocaleString()}<br>
+                    消息: ${version.message}<br>
+                    内容长度: ${version.content.length} 字符
+                </div>
+            `).join('');
+        }
+
+        function clearLog() {
+            document.getElementById('logArea').innerHTML = '';
+            document.getElementById('testResults').innerHTML = '';
+        }
+
+        // 模拟内容变化检测
+        function detectContentChange() {
+            const newContent = document.getElementById('testEditor').value;
+            
+            if (newContent !== mockCodeMirror.content) {
+                mockCodeMirror.isDirty = true;
+                mockCodeMirror.content = newContent;
+                log('📝 检测到内容变化');
+                updateEditorInfo();
+            }
+        }
+
+        // 生成长测试内容
+        function generateLongContent() {
+            log('📝 生成长测试内容...');
+            
+            // 生成一个约3万字的长内容
+            const paragraphs = [];
+            for (let i = 1; i <= 100; i++) {
+                paragraphs.push(`这是第${i}段内容。这里包含一些测试文字，用来模拟真实的长笔记场景。每个段落都有一定的长度，确保整个文档达到足够的字数来测试脏状态检测功能。在长笔记中，修改不同位置的内容应该都能被正确检测到，从而成功创建新版本。`);
+            }
+            
+            const testContent = paragraphs.join('\n\n');
+            document.getElementById('testEditor').value = testContent;
+            
+            // 初始化CodeMirror状态
+            mockCodeMirror.setValue(testContent);
+            
+            // 更新笔记内容
+            testData.notes['test-long-note'].content = testContent;
+            testData.notes['test-long-note'].lastModified = new Date().toISOString();
+            
+            log(`✅ 生成长测试内容完成，总长度: ${testContent.length} 字符`);
+            updateEditorInfo();
+            updateVersionList();
+            updateStatus('长测试内容生成完成', 'success');
+        }
+
+        // 模拟进入编辑模式
+        function simulateEditMode() {
+            log('🔄 模拟进入编辑模式...');
+            isInEditMode = true;
+            
+            // 标记CodeMirror为干净状态（刚加载的笔记内容）
+            mockCodeMirror.markClean();
+            
+            updateEditorInfo();
+            updateStatus('已进入编辑模式，CodeMirror已标记为干净状态', 'success');
+        }
+
+        // 修改开头部分
+        function modifyBeginning() {
+            log('📝 修改开头部分...');
+            const editor = document.getElementById('testEditor');
+            const content = editor.value;
+            
+            // 在开头添加一些内容
+            editor.value = '修改开头：这是新添加的内容。\n\n' + content;
+            detectContentChange();
+            
+            updateStatus('已修改开头部分', 'warning');
+        }
+
+        // 修改中间部分
+        function modifyMiddle() {
+            log('📝 修改中间部分...');
+            const editor = document.getElementById('testEditor');
+            const content = editor.value;
+            const middleIndex = Math.floor(content.length / 2);
+            
+            // 在中间位置插入一些内容
+            const newContent = content.substring(0, middleIndex) + 
+                             '\n\n修改中间：这是新添加的内容。\n\n' + 
+                             content.substring(middleIndex);
+            editor.value = newContent;
+            detectContentChange();
+            
+            updateStatus('已修改中间部分', 'warning');
+        }
+
+        // 修改结尾部分
+        function modifyEnd() {
+            log('📝 修改结尾部分...');
+            const editor = document.getElementById('testEditor');
+            const content = editor.value;
+            
+            // 在结尾添加一些内容
+            editor.value = content + '\n\n修改结尾：这是新添加的内容。';
+            detectContentChange();
+            
+            updateStatus('已修改结尾部分', 'warning');
+        }
+
+        // 模拟切换到预览模式
+        function simulateSwitchToPreview() {
+            log('🔄 模拟切换到预览模式...');
+            
+            if (!isInEditMode) {
+                log('❌ 错误：当前不在编辑模式');
+                updateStatus('错误：当前不在编辑模式', 'error');
+                return;
+            }
+            
+            // 使用CodeMirror的智能脏状态检查，替代字符串比较
+            const isDirty = mockCodeMirror && !mockCodeMirror.isClean();
+            
+            if (isDirty) {
+                // 内容已更改，创建新版本
+                log('📝 检测到内容变化，执行保存');
+                createNewVersion();
+                updateStatus('✅ 检测到内容变化，成功创建新版本', 'success');
+            } else {
+                // 内容未更改
+                log('ℹ️ 内容未变化，直接切换到预览');
+                updateStatus('ℹ️ 内容未变化，无需创建新版本', 'success');
+            }
+            
+            isInEditMode = false;
+            updateEditorInfo();
+        }
+
+        // 创建新版本
+        function createNewVersion() {
+            const note = testData.notes['test-long-note'];
+            const currentContent = mockCodeMirror.getValue();
+            
+            // 生成版本信息
+            const version = {
+                hash: generateVersionHash(currentContent),
+                timestamp: new Date().toISOString(),
+                content: currentContent,
+                message: '自动保存',
+                diff: []
+            };
+            
+            note.versions.unshift(version);
+            note.content = currentContent;
+            note.lastModified = new Date().toISOString();
+            
+            // 标记CodeMirror为干净状态
+            mockCodeMirror.markClean();
+            
+            log(`✅ 新版本创建成功，当前版本数: ${note.versions.length}`);
+            updateVersionList();
+        }
+
+        // 生成版本哈希
+        function generateVersionHash(content) {
+            let hash = 0;
+            for (let i = 0; i < content.length; i++) {
+                hash = ((hash << 5) - hash) + content.charCodeAt(i);
+                hash |= 0;
+            }
+            return 'v' + Math.abs(hash).toString(16).substring(0, 6);
+        }
+
+        // 绑定编辑器事件
+        document.getElementById('testEditor').addEventListener('input', detectContentChange);
+        
+        window.addEventListener('load', () => {
+            log('🚀 长笔记版本创建测试页面已加载');
+            updateStatus('测试页面已准备就绪', 'success');
+        });
+    </script>
+</body>
+</html>
