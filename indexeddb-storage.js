@@ -193,19 +193,19 @@ class IndexedDBStorage {
         });
     }
 
-    // 清理旧备份（保留最近10个）
-    async cleanupOldBackups() {
+    // 清理旧备份（保留最近指定数量的备份）
+    async cleanupOldBackups(keepCount = 3) {
         const backups = await this.getAllBackups();
-        if (backups.length > 10) {
+        if (backups.length > keepCount) {
             backups.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-            const toDelete = backups.slice(10);
+            const toDelete = backups.slice(keepCount);
             for (const backup of toDelete) {
                 await this._executeTransaction('readwrite', (store, resolve) => {
                     store.delete(backup.id);
                     resolve();
                 });
             }
-            console.log(`清理了 ${toDelete.length} 个旧备份`);
+            console.log(`备份清理完成：删除了 ${toDelete.length} 个旧备份，保留了最新的 ${keepCount} 个。`);
         }
     }
 

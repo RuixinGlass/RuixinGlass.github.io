@@ -742,6 +742,8 @@ async function saveToLocalStorage() {
             await window.indexedDBStorage.saveData(notesData);
             // 同时创建备份
             await window.indexedDBStorage.backupData(notesData);
+            // 【轻量化优化】立即清理旧备份，仅保留3个最新备份
+            await window.indexedDBStorage.cleanupOldBackups(3);
             console.log('IndexedDB 数据保存成功，笔记数量:', Object.keys(notesData.notes).length);
         } else {
             throw new Error('核心存储模块 (IndexedDB) 加载失败！');
