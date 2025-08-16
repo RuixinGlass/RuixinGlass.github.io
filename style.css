@@ -1987,10 +1987,6 @@ code {
   padding-bottom: 0;
 }
 
-.notes-container {
-  margin-bottom: var(--spacing-xl);
-}
-
 /* 彻底隐藏 Codemirror 虚拟滚动条 */
 .CodeMirror-vscrollbar,
 .CodeMirror-hscrollbar {
