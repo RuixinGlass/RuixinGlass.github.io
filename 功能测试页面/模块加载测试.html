@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>模块加载测试 - 凤凰计划</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .test-container {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .test-button {
+            background: #007acc;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .test-button:hover {
+            background: #005a9e;
+        }
+        .result {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 15px;
+            margin: 10px 0;
+            font-family: monospace;
+            white-space: pre-wrap;
+        }
+        .success {
+            color: #28a745;
+        }
+        .error {
+            color: #dc3545;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔧 模块加载测试 - 凤凰计划</h1>
+    
+    <div class="test-container">
+        <h2>📦 模块加载测试</h2>
+        <button class="test-button" onclick="testModuleLoading()">测试模块加载</button>
+        <button class="test-button" onclick="testAtomicStorage()">测试原子化存储</button>
+        <button class="test-button" onclick="testDataMigration()">测试数据迁移</button>
+        <div id="testResults" class="result"></div>
+    </div>
+
+    <script>
+                 // 测试模块加载
+         async function testModuleLoading() {
+             const results = document.getElementById('testResults');
+             results.innerHTML = '🔧 开始测试模块加载...\n\n';
+
+             try {
+                 // 测试原子化存储模块
+                 results.innerHTML += '📦 测试原子化存储模块...\n';
+                 if (window.atomicStorage) {
+                     results.innerHTML += '✅ 原子化存储模块已加载\n';
+                 } else {
+                     results.innerHTML += '❌ 原子化存储模块未加载\n';
+                     
+                     // 尝试动态加载
+                     results.innerHTML += '🔄 尝试动态加载原子化存储模块...\n';
+                     const script1 = document.createElement('script');
+                     script1.src = '../atomic-storage.js';
+                     document.head.appendChild(script1);
+                     
+                     await new Promise((resolve, reject) => {
+                         script1.onload = () => {
+                             results.innerHTML += '✅ 原子化存储模块加载成功\n';
+                             resolve();
+                         };
+                         script1.onerror = () => {
+                             results.innerHTML += '❌ 原子化存储模块加载失败\n';
+                             reject(new Error('原子化存储模块加载失败'));
+                         };
+                     });
+                 }
+
+                 // 测试数据迁移模块
+                 results.innerHTML += '\n📦 测试数据迁移模块...\n';
+                 if (window.dataMigration) {
+                     results.innerHTML += '✅ 数据迁移模块已加载\n';
+                 } else {
+                     results.innerHTML += '❌ 数据迁移模块未加载\n';
+                     
+                     // 尝试动态加载
+                     results.innerHTML += '🔄 尝试动态加载数据迁移模块...\n';
+                     const script2 = document.createElement('script');
+                     script2.src = '../data-migration.js';
+                     document.head.appendChild(script2);
+                     
+                     await new Promise((resolve, reject) => {
+                         script2.onload = () => {
+                             results.innerHTML += '✅ 数据迁移模块加载成功\n';
+                             resolve();
+                         };
+                         script2.onerror = () => {
+                             results.innerHTML += '❌ 数据迁移模块加载失败\n';
+                             reject(new Error('数据迁移模块加载失败'));
+                         };
+                     });
+                 }
+
+                 // 最终验证
+                 results.innerHTML += '\n🔍 最终验证模块状态...\n';
+                 if (window.atomicStorage && window.dataMigration) {
+                     results.innerHTML += '✅ 所有模块加载成功并可用\n';
+                 } else {
+                     results.innerHTML += '⚠️ 部分模块可能未正确加载\n';
+                 }
+
+                 results.innerHTML += '\n🎉 模块加载测试完成！\n';
+
+             } catch (error) {
+                 results.innerHTML += `\n❌ 模块加载测试失败: ${error.message}\n`;
+                 console.error('模块加载测试详细错误:', error);
+             }
+         }
+
+        // 测试原子化存储
+        async function testAtomicStorage() {
+            const results = document.getElementById('testResults');
+            results.innerHTML = '🧪 开始测试原子化存储...\n\n';
+
+            try {
+                if (!window.atomicStorage) {
+                    results.innerHTML += '❌ 原子化存储模块未加载\n';
+                    return;
+                }
+
+                results.innerHTML += '✅ 原子化存储模块已加载\n';
+                
+                // 测试初始化
+                results.innerHTML += '🔄 测试数据库初始化...\n';
+                await window.atomicStorage.init();
+                results.innerHTML += '✅ 数据库初始化成功\n';
+
+                // 测试创建笔记
+                results.innerHTML += '🔄 测试创建笔记...\n';
+                const testNote = {
+                    id: 'test_' + Date.now(),
+                    title: '测试笔记',
+                    content: '这是一个测试笔记'
+                };
+                const savedNote = await window.atomicStorage.saveNote(testNote);
+                results.innerHTML += '✅ 笔记创建成功\n';
+
+                // 测试获取笔记
+                results.innerHTML += '🔄 测试获取笔记...\n';
+                const retrievedNote = await window.atomicStorage.getNote(testNote.id);
+                results.innerHTML += '✅ 笔记获取成功\n';
+
+                // 测试获取元数据
+                results.innerHTML += '🔄 测试获取元数据...\n';
+                const metadata = await window.atomicStorage.getAllNoteMetadata();
+                results.innerHTML += `✅ 元数据获取成功 (${metadata.length} 个笔记)\n`;
+
+                results.innerHTML += '\n🎉 原子化存储测试完成！\n';
+
+            } catch (error) {
+                results.innerHTML += `\n❌ 原子化存储测试失败: ${error.message}\n`;
+                console.error('原子化存储测试详细错误:', error);
+            }
+        }
+
+        // 测试数据迁移
+        async function testDataMigration() {
+            const results = document.getElementById('testResults');
+            results.innerHTML = '🔄 开始测试数据迁移...\n\n';
+
+            try {
+                if (!window.dataMigration) {
+                    results.innerHTML += '❌ 数据迁移模块未加载\n';
+                    return;
+                }
+
+                results.innerHTML += '✅ 数据迁移模块已加载\n';
+
+                // 测试迁移状态检查
+                results.innerHTML += '🔄 测试迁移状态检查...\n';
+                if (window.checkMigrationStatus) {
+                    const status = await window.checkMigrationStatus();
+                    results.innerHTML += `✅ 迁移状态检查成功\n`;
+                    results.innerHTML += `📊 状态信息: ${JSON.stringify(status, null, 2)}\n`;
+                } else {
+                    results.innerHTML += '❌ 迁移状态检查功能不可用\n';
+                }
+
+                results.innerHTML += '\n🎉 数据迁移测试完成！\n';
+
+            } catch (error) {
+                results.innerHTML += `\n❌ 数据迁移测试失败: ${error.message}\n`;
+                console.error('数据迁移测试详细错误:', error);
+            }
+        }
+
+                 // 页面加载时自动测试
+         window.addEventListener('load', () => {
+             // 延迟更长时间，确保页面完全加载
+             setTimeout(async () => {
+                 console.log('🔄 开始自动模块加载测试...');
+                 await testModuleLoading();
+                 console.log('✅ 自动模块加载测试完成');
+             }, 2000); // 延迟2秒确保页面完全加载
+         });
+    </script>
+</body>
+</html>

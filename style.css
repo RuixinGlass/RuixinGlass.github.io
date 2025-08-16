@@ -1142,10 +1142,8 @@ pre, code {
     padding-right: var(--spacing-md);
   }
   .content-area.editing-mode {
-    /* 让 content-area 自身撑满 note-main-panel 的剩余空间 */
-    flex: 1;
-    /* 关键修复：移除外层滚动，将滚动权完全交给内部的CodeMirror */
-    overflow: hidden;
+    /* 移除 flex: 1，允许此容器根据内部的 CodeMirror 内容自由伸展，从而撑开父容器以触发滚动 */
+    /* 移除 overflow: hidden，将滚动责任完全交还给父容器 .note-main-panel */
     background: #f8f8f5;
     transition: background 0.2s;
   }
@@ -2197,6 +2195,35 @@ code {
     */
     margin-bottom: 60px;
   }
+}
+
+/* ========== 迁移按钮样式 ========== */
+.btn-migration {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+}
+
+.btn-migration:hover {
+  background: linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.btn-migration:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+}
+
+.btn-migration.hidden {
+  display: none !important;
 }
 
 

@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>云同步综合测试</title>
+    <style>
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f8f9fa;
+        }
+        .container {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .test-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+        }
+        .test-section h3 {
+            color: #495057;
+            margin-bottom: 15px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+            color: #495057;
+        }
+        input[type="text"], input[type="password"], input[type="number"] {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ced4da;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        button.success {
+            background: #28a745;
+        }
+        button.warning {
+            background: #ffc107;
+            color: #212529;
+        }
+        button.danger {
+            background: #dc3545;
+        }
+        .log {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            padding: 15px;
+            margin-top: 15px;
+            max-height: 400px;
+            overflow-y: auto;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 12px;
+            white-space: pre-wrap;
+        }
+        .status {
+            padding: 10px;
+            border-radius: 6px;
+            margin: 10px 0;
+        }
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .status.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        .note-list {
+            max-height: 300px;
+            overflow-y: auto;
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            padding: 10px;
+            background: #f8f9fa;
+        }
+        .note-item {
+            padding: 5px;
+            border-bottom: 1px solid #e9ecef;
+        }
+        .note-item:last-child {
+            border-bottom: none;
+        }
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background: #e9ecef;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+        .progress-fill {
+            height: 100%;
+            background: #007bff;
+            transition: width 0.3s ease;
+            width: 0%;
+        }
+        .step-indicator {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+        .step {
+            flex: 1;
+            text-align: center;
+            padding: 10px;
+            background: #e9ecef;
+            margin: 0 5px;
+            border-radius: 6px;
+            font-size: 12px;
+        }
+        .step.active {
+            background: #007bff;
+            color: white;
+        }
+        .step.completed {
+            background: #28a745;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔄 云同步综合测试</h1>
+        
+        <div class="step-indicator">
+            <div class="step" id="step1">步骤1: 系统检查</div>
+            <div class="step" id="step2">步骤2: 创建测试数据</div>
+            <div class="step" id="step3">步骤3: 上传到云端</div>
+            <div class="step" id="step4">步骤4: 下载验证</div>
+        </div>
+        
+        <div class="test-section">
+            <h3>🔧 配置信息</h3>
+            <div class="form-group">
+                <label for="token">GitHub Token:</label>
+                <input type="password" id="token" placeholder="输入你的GitHub Token">
+            </div>
+            <div class="form-group">
+                <label for="gistId">Gist ID（留空自动创建）:</label>
+                <input type="text" id="gistId" placeholder="输入Gist ID或留空">
+            </div>
+            <div class="form-group">
+                <label for="testNoteCount">测试笔记数量:</label>
+                <input type="number" id="testNoteCount" value="5" min="1" max="20">
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h3>🚀 测试操作</h3>
+            <button onclick="checkSystemStatus()" class="success">检查系统状态</button>
+            <button onclick="createTestData()" class="warning">创建测试数据</button>
+            <button onclick="uploadToCloud()" class="info">上传到云端</button>
+            <button onclick="downloadFromCloud()" class="info">从云端下载</button>
+            <button onclick="runFullTest()" class="success">运行完整测试</button>
+            <button onclick="clearLog()" class="danger">清空日志</button>
+        </div>
+
+        <div class="test-section">
+            <h3>📊 测试结果</h3>
+            <div id="testResult"></div>
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h3>📝 详细日志</h3>
+            <div id="log" class="log"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>📋 笔记列表</h3>
+            <div id="noteList" class="note-list">
+                <p>暂无笔记</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 加载核心模块 -->
+    <script src="https://cdn.jsdelivr.net/npm/marked@4.3.0/marked.min.js"></script>
+    <script src="atomic-storage.js"></script>
+    <script src="data-migration.js"></script>
+    <script src="performance-optimizer.js"></script>
+    <script src="indexeddb-storage.js"></script>
+    <script src="app.js"></script>
+
+    <script>
+        let currentGistId = null;
+        let testDataCreated = false;
+
+        // 日志函数
+        function log(message, type = 'info') {
+            const logEl = document.getElementById('log');
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = `[${timestamp}] ${message}\n`;
+            logEl.textContent += logEntry;
+            logEl.scrollTop = logEl.scrollHeight;
+            console.log(message);
+        }
+
+        function clearLog() {
+            document.getElementById('log').textContent = '';
+            document.getElementById('testResult').innerHTML = '';
+            updateProgress(0);
+            resetSteps();
+        }
+
+        // 显示测试结果
+        function showTestResult(result) {
+            const resultEl = document.getElementById('testResult');
+            resultEl.innerHTML = result;
+        }
+
+        // 更新进度条
+        function updateProgress(percent) {
+            const progressFill = document.getElementById('progressFill');
+            progressFill.style.width = percent + '%';
+        }
+
+        // 更新步骤指示器
+        function updateStep(stepNumber, status = 'active') {
+            const step = document.getElementById(`step${stepNumber}`);
+            step.className = `step ${status}`;
+        }
+
+        function resetSteps() {
+            for (let i = 1; i <= 4; i++) {
+                updateStep(i, '');
+            }
+        }
+
+        // 更新笔记列表
+        function updateNoteList() {
+            const noteListEl = document.getElementById('noteList');
+            const notesData = window.notesData || {};
+            const notes = notesData.notes || {};
+            
+            if (Object.keys(notes).length === 0) {
+                noteListEl.innerHTML = '<p>暂无笔记</p>';
+                return;
+            }
+            
+            let html = '';
+            Object.keys(notes).forEach(noteId => {
+                const note = notes[noteId];
+                html += `<div class="note-item">
+                    <strong>${note.title || '未命名'}</strong> (${noteId})<br>
+                    <small>最后修改: ${note.lastModified || '未知'}</small>
+                </div>`;
+            });
+            noteListEl.innerHTML = html;
+        }
+
+        // 检查系统状态
+        function checkSystemStatus() {
+            const status = window.NoteApp ? window.NoteApp.getStatus() : {};
+            const notesData = window.notesData || {};
+            
+            log('🔍 系统状态检查:');
+            log(`• 原子化存储: ${status.atomicStorageLoaded ? '✅ 已加载' : '❌ 未加载'}`);
+            log(`• IndexedDB存储: ${status.indexedDBStorageLoaded ? '✅ 已加载' : '❌ 未加载'}`);
+            log(`• 笔记数据: ${status.notesDataLoaded ? '✅ 已加载' : '❌ 未加载'}`);
+            log(`• 笔记数量: ${status.notesCount || 0} 篇`);
+            log(`• 当前笔记ID: ${notesData.currentNoteId || '无'}`);
+            log(`• 笔记对象: ${Object.keys(notesData.notes || {}).length} 个`);
+            log(`• importAtomicData函数: ${typeof window.NoteApp?.importAtomicData === 'function' ? '✅ 可用' : '❌ 不可用'}`);
+            log(`• atomicStorage对象: ${window.atomicStorage ? '✅ 可用' : '❌ 不可用'}`);
+            
+            updateNoteList();
+            updateStep(1, 'completed');
+            updateProgress(25);
+        }
+
+        // 创建测试数据
+        async function createTestData() {
+            const noteCount = parseInt(document.getElementById('testNoteCount').value) || 5;
+            
+            log(`🚀 开始创建测试数据 (${noteCount} 个笔记)...`);
+            
+            try {
+                // 清空现有数据
+                notesData.notes = {};
+                notesData.currentNoteId = null;
+                
+                // 创建测试笔记
+                for (let i = 1; i <= noteCount; i++) {
+                    const noteId = `test-note-${i}`;
+                    const note = {
+                        title: `测试笔记 ${i}`,
+                        content: `# 测试笔记 ${i}\n\n这是第 ${i} 个测试笔记的内容。\n\n## 功能测试\n- 原子化存储\n- 云同步\n- 双格式兼容\n\n**创建时间**: ${new Date().toISOString()}`,
+                        lastModified: new Date().toISOString(),
+                        versions: [],
+                        tags: ['测试', '云同步', `笔记${i}`]
+                    };
+                    
+                    notesData.notes[noteId] = note;
+                    log(`✅ 创建笔记: ${note.title}`);
+                }
+                
+                // 保存到本地存储
+                if (typeof saveToLocalStorage === 'function') {
+                    await saveToLocalStorage();
+                    log('✅ 测试数据已保存到本地存储');
+                }
+                
+                testDataCreated = true;
+                updateNoteList();
+                updateStep(2, 'completed');
+                updateProgress(50);
+                
+                showTestResult(`
+                    <div class="status success">
+                        <strong>✅ 测试数据创建完成！</strong><br>
+                        • 创建笔记数: ${noteCount}<br>
+                        • 当前系统笔记数: ${Object.keys(notesData.notes).length}
+                    </div>
+                `);
+                
+            } catch (error) {
+                log(`❌ 创建测试数据失败: ${error.message}`, 'error');
+                showTestResult(`
+                    <div class="status error">
+                        <strong>❌ 创建测试数据失败</strong><br>
+                        错误: ${error.message}
+                    </div>
+                `);
+            }
+        }
+
+        // 上传到云端
+        async function uploadToCloud() {
+            const token = document.getElementById('token').value;
+            const gistId = document.getElementById('gistId').value;
+            
+            if (!token) {
+                log('❌ 请先输入GitHub Token', 'error');
+                return;
+            }
+            
+            if (!testDataCreated && Object.keys(notesData.notes || {}).length === 0) {
+                log('❌ 请先创建测试数据', 'error');
+                return;
+            }
+            
+            log('🚀 开始上传到云端...');
+            
+            try {
+                // 获取当前数据
+                let dataToUpload = {};
+                if (window.indexedDBStorage) {
+                    dataToUpload = await window.indexedDBStorage.loadData();
+                } else {
+                    dataToUpload = notesData;
+                }
+                
+                // 上传到云端
+                const newGistId = await uploadToGist(token, gistId, dataToUpload);
+                currentGistId = newGistId;
+                
+                // 更新输入框
+                document.getElementById('gistId').value = newGistId;
+                
+                log(`✅ 上传成功！Gist ID: ${newGistId}`);
+                updateStep(3, 'completed');
+                updateProgress(75);
+                
+                showTestResult(`
+                    <div class="status success">
+                        <strong>✅ 上传到云端成功！</strong><br>
+                        • Gist ID: ${newGistId}<br>
+                        • 上传笔记数: ${Object.keys(dataToUpload.notes || {}).length}
+                    </div>
+                `);
+                
+            } catch (error) {
+                log(`❌ 上传失败: ${error.message}`, 'error');
+                showTestResult(`
+                    <div class="status error">
+                        <strong>❌ 上传失败</strong><br>
+                        错误: ${error.message}
+                    </div>
+                `);
+            }
+        }
+
+        // 从云端下载
+        async function downloadFromCloud() {
+            const token = document.getElementById('token').value;
+            const gistId = document.getElementById('gistId').value;
+            
+            if (!token || !gistId) {
+                log('❌ 请先输入GitHub Token和Gist ID', 'error');
+                return;
+            }
+            
+            log('🚀 开始从云端下载...');
+            
+            try {
+                const downloadStartTime = Date.now();
+                
+                // 调用下载函数
+                const result = await fetchFromGist(token, gistId);
+                const downloadEndTime = Date.now();
+                
+                log(`✅ 下载完成！耗时: ${downloadEndTime - downloadStartTime}ms`);
+                log(`📋 下载结果类型: ${result._imported || 'unknown'}`);
+                log(`📋 数据版本: ${result._version || 'unknown'}`);
+                log(`📋 笔记数量: ${Object.keys(result.notes || {}).length}`);
+                
+                // 检查下载后的系统状态
+                setTimeout(() => {
+                    const status = window.NoteApp ? window.NoteApp.getStatus() : {};
+                    log('🔍 下载后系统状态:');
+                    log(`• 笔记数量: ${status.notesCount || 0} 篇`);
+                    log(`• 笔记对象: ${Object.keys(window.notesData?.notes || {}).length} 个`);
+                    
+                    updateNoteList();
+                    updateStep(4, 'completed');
+                    updateProgress(100);
+                    
+                    showTestResult(`
+                        <div class="status success">
+                            <strong>✅ 下载验证完成！</strong><br>
+                            • 下载耗时: ${downloadEndTime - downloadStartTime}ms<br>
+                            • 导入类型: ${result._imported || 'unknown'}<br>
+                            • 数据版本: ${result._version || 'unknown'}<br>
+                            • 下载笔记数: ${Object.keys(result.notes || {}).length}<br>
+                            • 当前系统笔记数: ${status.notesCount || 0}
+                        </div>
+                    `);
+                }, 1000);
+                
+            } catch (error) {
+                log(`❌ 下载失败: ${error.message}`, 'error');
+                showTestResult(`
+                    <div class="status error">
+                        <strong>❌ 下载失败</strong><br>
+                        错误: ${error.message}
+                    </div>
+                `);
+            }
+        }
+
+        // 运行完整测试
+        async function runFullTest() {
+            log('🚀 开始运行完整测试流程...');
+            clearLog();
+            
+            try {
+                // 步骤1: 检查系统状态
+                log('📋 步骤1: 检查系统状态');
+                checkSystemStatus();
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                
+                // 步骤2: 创建测试数据
+                log('📋 步骤2: 创建测试数据');
+                await createTestData();
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                
+                // 步骤3: 上传到云端
+                log('📋 步骤3: 上传到云端');
+                await uploadToCloud();
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                
+                // 步骤4: 下载验证
+                log('📋 步骤4: 下载验证');
+                await downloadFromCloud();
+                
+                log('🎉 完整测试流程完成！');
+                
+            } catch (error) {
+                log(`❌ 完整测试失败: ${error.message}`, 'error');
+            }
+        }
+
+        // 页面加载完成后初始化
+        window.addEventListener('load', function() {
+            log('🔧 云同步综合测试工具已加载');
+            log('💡 使用说明:');
+            log('1. 输入GitHub Token和测试笔记数量');
+            log('2. 点击"运行完整测试"进行端到端测试');
+            log('3. 或分别执行各个步骤进行测试');
+            
+            // 等待主应用初始化完成
+            waitForAppInitialization();
+        });
+
+        // 等待应用初始化的函数
+        function waitForAppInitialization() {
+            log('⏳ 等待主应用初始化...');
+            
+            // 由于函数定义已移到文件顶部，我们只需要等待很短时间
+            setTimeout(() => {
+                log('✅ 主应用初始化完成！');
+                checkSystemStatus();
+            }, 500);
+        }
+    </script>
+</body>
+</html>

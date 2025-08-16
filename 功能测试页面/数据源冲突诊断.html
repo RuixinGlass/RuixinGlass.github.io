@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>数据源冲突诊断 - 凤凰计划</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .diagnostic-container {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .diagnostic-button {
+            background: #007acc;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .diagnostic-button:hover {
+            background: #005a9e;
+        }
+        .diagnostic-button.danger {
+            background: #dc3545;
+        }
+        .diagnostic-button.danger:hover {
+            background: #c82333;
+        }
+        .result {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 15px;
+            margin: 10px 0;
+            font-family: monospace;
+            white-space: pre-wrap;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .success {
+            color: #28a745;
+        }
+        .error {
+            color: #dc3545;
+        }
+        .warning {
+            color: #ffc107;
+        }
+        .info {
+            color: #007acc;
+        }
+        .conflict {
+            color: #fd7e14;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔍 数据源冲突诊断 - 凤凰计划</h1>
+    
+    <div class="diagnostic-container">
+        <h2>📊 系统状态检查</h2>
+        <div id="systemStatus" class="result">
+            <span class="info">🔄 正在检查系统状态...</span>
+        </div>
+    </div>
+
+    <div class="diagnostic-container">
+        <h2>🧪 数据源诊断</h2>
+        <button class="diagnostic-button" onclick="checkDataSources()">检查数据源</button>
+        <button class="diagnostic-button" onclick="compareDataStructures()">比较数据结构</button>
+        <button class="diagnostic-button" onclick="checkBusinessLogic()">检查业务逻辑</button>
+        <button class="diagnostic-button danger" onclick="fixDataConflict()">修复数据冲突</button>
+        <div id="diagnosticResults" class="result"></div>
+    </div>
+
+    <!-- 加载必要的模块 -->
+    <script src="../atomic-storage.js"></script>
+    <script src="../indexeddb-storage.js"></script>
+
+    <script>
+        // ========== 诊断工具 ==========
+        
+        // 检查系统状态
+        function checkSystemStatus() {
+            const statusDiv = document.getElementById('systemStatus');
+            
+            let status = '📊 系统状态检查结果:\n\n';
+
+            // 检查旧存储系统
+            if (window.indexedDBStorage) {
+                status += '<span class="success">✅ 旧存储系统 (indexedDBStorage): 已加载</span>\n';
+            } else {
+                status += '<span class="error">❌ 旧存储系统 (indexedDBStorage): 未加载</span>\n';
+            }
+
+            // 检查新存储系统
+            if (window.atomicStorage) {
+                status += '<span class="success">✅ 新存储系统 (atomicStorage): 已加载</span>\n';
+            } else {
+                status += '<span class="error">❌ 新存储系统 (atomicStorage): 未加载</span>\n';
+            }
+
+            // 检查内存数据
+            if (window.notesData) {
+                status += '<span class="success">✅ 内存数据 (notesData): 已加载</span>\n';
+                status += `   • 当前笔记ID: ${window.notesData.currentNoteId || '无'}\n`;
+                status += `   • 笔记数量: ${Object.keys(window.notesData.notes || {}).length}\n`;
+            } else {
+                status += '<span class="error">❌ 内存数据 (notesData): 未加载</span>\n';
+            }
+
+            // 检查会话状态
+            if (window.sessionState) {
+                status += '<span class="success">✅ 会话状态 (sessionState): 已加载</span>\n';
+                status += `   • 会话数量: ${window.sessionState.size || 0}\n`;
+            } else {
+                status += '<span class="error">❌ 会话状态 (sessionState): 未加载</span>\n';
+            }
+
+            statusDiv.innerHTML = status;
+        }
+
+        // 检查数据源
+        async function checkDataSources() {
+            const results = document.getElementById('diagnosticResults');
+            results.innerHTML = '🔍 检查数据源...\n\n';
+
+            try {
+                // 1. 检查旧存储系统数据
+                results.innerHTML += '1️⃣ 检查旧存储系统 (indexedDBStorage)...\n';
+                let oldData = null;
+                if (window.indexedDBStorage) {
+                    try {
+                        oldData = await window.indexedDBStorage.loadData();
+                        results.innerHTML += '<span class="success">✅ 旧存储系统数据加载成功</span>\n';
+                        results.innerHTML += `   • 笔记数量: ${Object.keys(oldData.notes || {}).length}\n`;
+                        results.innerHTML += `   • 当前笔记ID: ${oldData.currentNoteId || '无'}\n`;
+                    } catch (error) {
+                        results.innerHTML += `<span class="error">❌ 旧存储系统数据加载失败: ${error.message}</span>\n`;
+                    }
+                } else {
+                    results.innerHTML += '<span class="warning">⚠️ 旧存储系统不可用</span>\n';
+                }
+
+                // 2. 检查新存储系统数据
+                results.innerHTML += '\n2️⃣ 检查新存储系统 (atomicStorage)...\n';
+                let newData = null;
+                if (window.atomicStorage) {
+                    try {
+                        await window.atomicStorage.init();
+                        newData = await window.atomicStorage.getAllNoteMetadata();
+                        results.innerHTML += '<span class="success">✅ 新存储系统数据加载成功</span>\n';
+                        results.innerHTML += `   • 笔记数量: ${newData.length}\n`;
+                    } catch (error) {
+                        results.innerHTML += `<span class="error">❌ 新存储系统数据加载失败: ${error.message}</span>\n`;
+                    }
+                } else {
+                    results.innerHTML += '<span class="warning">⚠️ 新存储系统不可用</span>\n';
+                }
+
+                // 3. 检查内存数据
+                results.innerHTML += '\n3️⃣ 检查内存数据 (notesData)...\n';
+                if (window.notesData) {
+                    results.innerHTML += '<span class="success">✅ 内存数据检查成功</span>\n';
+                    results.innerHTML += `   • 笔记数量: ${Object.keys(window.notesData.notes || {}).length}\n`;
+                    results.innerHTML += `   • 当前笔记ID: ${window.notesData.currentNoteId || '无'}\n`;
+                } else {
+                    results.innerHTML += '<span class="error">❌ 内存数据不可用</span>\n';
+                }
+
+                // 4. 检查数据一致性
+                results.innerHTML += '\n4️⃣ 检查数据一致性...\n';
+                const oldCount = oldData ? Object.keys(oldData.notes || {}).length : 0;
+                const newCount = newData ? newData.length : 0;
+                const memoryCount = window.notesData ? Object.keys(window.notesData.notes || {}).length : 0;
+
+                if (oldCount === newCount && newCount === memoryCount) {
+                    results.innerHTML += '<span class="success">✅ 数据一致性检查通过</span>\n';
+                    results.innerHTML += `   • 所有数据源笔记数量一致: ${oldCount}\n`;
+                } else {
+                    results.innerHTML += '<span class="conflict">⚠️ 数据不一致！</span>\n';
+                    results.innerHTML += `   • 旧存储系统: ${oldCount} 个笔记\n`;
+                    results.innerHTML += `   • 新存储系统: ${newCount} 个笔记\n`;
+                    results.innerHTML += `   • 内存数据: ${memoryCount} 个笔记\n`;
+                }
+
+            } catch (error) {
+                results.innerHTML += `<span class="error">❌ 数据源检查失败: ${error.message}</span>\n`;
+                console.error('数据源检查详细错误:', error);
+            }
+        }
+
+        // 比较数据结构
+        async function compareDataStructures() {
+            const results = document.getElementById('diagnosticResults');
+            results.innerHTML = '🔍 比较数据结构...\n\n';
+
+            try {
+                // 获取旧数据结构示例
+                let oldStructure = null;
+                if (window.indexedDBStorage) {
+                    try {
+                        const oldData = await window.indexedDBStorage.loadData();
+                        const noteIds = Object.keys(oldData.notes || {});
+                        if (noteIds.length > 0) {
+                            oldStructure = oldData.notes[noteIds[0]];
+                        }
+                    } catch (error) {
+                        results.innerHTML += `<span class="warning">⚠️ 无法获取旧数据结构: ${error.message}</span>\n`;
+                    }
+                }
+
+                // 获取新数据结构示例
+                let newStructure = null;
+                if (window.atomicStorage) {
+                    try {
+                        await window.atomicStorage.init();
+                        const metadata = await window.atomicStorage.getAllNoteMetadata();
+                        if (metadata.length > 0) {
+                            const note = await window.atomicStorage.getNote(metadata[0].id);
+                            newStructure = note;
+                        }
+                    } catch (error) {
+                        results.innerHTML += `<span class="warning">⚠️ 无法获取新数据结构: ${error.message}</span>\n`;
+                    }
+                }
+
+                results.innerHTML += '📊 数据结构对比:\n\n';
+
+                // 旧数据结构
+                if (oldStructure) {
+                    results.innerHTML += '🔴 旧数据结构 (indexedDBStorage):\n';
+                    results.innerHTML += `   • 类型: ${typeof oldStructure}\n`;
+                    results.innerHTML += `   • 属性: ${Object.keys(oldStructure).join(', ')}\n`;
+                    if (oldStructure.versions) {
+                        results.innerHTML += `   • 版本数量: ${oldStructure.versions.length}\n`;
+                    }
+                    results.innerHTML += '\n';
+                }
+
+                // 新数据结构
+                if (newStructure) {
+                    results.innerHTML += '🟢 新数据结构 (atomicStorage):\n';
+                    results.innerHTML += `   • 类型: ${typeof newStructure}\n`;
+                    results.innerHTML += `   • 属性: ${Object.keys(newStructure).join(', ')}\n`;
+                    if (newStructure.metadata) {
+                        results.innerHTML += `   • 元数据: ${Object.keys(newStructure.metadata).join(', ')}\n`;
+                    }
+                    results.innerHTML += '\n';
+                }
+
+                // 结构差异分析
+                if (oldStructure && newStructure) {
+                    results.innerHTML += '🔍 结构差异分析:\n';
+                    
+                    const oldKeys = Object.keys(oldStructure);
+                    const newKeys = Object.keys(newStructure);
+                    
+                    const onlyInOld = oldKeys.filter(key => !newKeys.includes(key));
+                    const onlyInNew = newKeys.filter(key => !oldKeys.includes(key));
+                    const common = oldKeys.filter(key => newKeys.includes(key));
+                    
+                    if (onlyInOld.length > 0) {
+                        results.innerHTML += `   • 仅旧结构有: ${onlyInOld.join(', ')}\n`;
+                    }
+                    if (onlyInNew.length > 0) {
+                        results.innerHTML += `   • 仅新结构有: ${onlyInNew.join(', ')}\n`;
+                    }
+                    results.innerHTML += `   • 共同属性: ${common.join(', ')}\n`;
+                }
+
+            } catch (error) {
+                results.innerHTML += `<span class="error">❌ 数据结构比较失败: ${error.message}</span>\n`;
+                console.error('数据结构比较详细错误:', error);
+            }
+        }
+
+        // 检查业务逻辑
+        async function checkBusinessLogic() {
+            const results = document.getElementById('diagnosticResults');
+            results.innerHTML = '🔍 检查业务逻辑...\n\n';
+
+            try {
+                results.innerHTML += '1️⃣ 检查核心业务函数...\n';
+
+                // 检查saveVersion函数
+                if (typeof window.saveVersion === 'function') {
+                    results.innerHTML += '<span class="success">✅ saveVersion函数: 存在</span>\n';
+                } else {
+                    results.innerHTML += '<span class="error">❌ saveVersion函数: 不存在</span>\n';
+                }
+
+                // 检查saveToLocalStorage函数
+                if (typeof window.saveToLocalStorage === 'function') {
+                    results.innerHTML += '<span class="success">✅ saveToLocalStorage函数: 存在</span>\n';
+                } else {
+                    results.innerHTML += '<span class="error">❌ saveToLocalStorage函数: 不存在</span>\n';
+                }
+
+                // 检查loadFromLocalStorage函数
+                if (typeof window.loadFromLocalStorage === 'function') {
+                    results.innerHTML += '<span class="success">✅ loadFromLocalStorage函数: 存在</span>\n';
+                } else {
+                    results.innerHTML += '<span class="error">❌ loadFromLocalStorage函数: 不存在</span>\n';
+                }
+
+                results.innerHTML += '\n2️⃣ 检查数据流...\n';
+
+                // 检查数据流
+                if (window.notesData && window.notesData.notes) {
+                    const noteIds = Object.keys(window.notesData.notes);
+                    if (noteIds.length > 0) {
+                        const sampleNote = window.notesData.notes[noteIds[0]];
+                        results.innerHTML += '<span class="success">✅ 内存数据流: 正常</span>\n';
+                        results.innerHTML += `   • 示例笔记ID: ${noteIds[0]}\n`;
+                        results.innerHTML += `   • 笔记标题: ${sampleNote.title || '无标题'}\n`;
+                        results.innerHTML += `   • 内容长度: ${sampleNote.content ? sampleNote.content.length : 0} 字符\n`;
+                        results.innerHTML += `   • 版本数量: ${sampleNote.versions ? sampleNote.versions.length : 0}\n`;
+                    } else {
+                        results.innerHTML += '<span class="warning">⚠️ 内存数据流: 空数据</span>\n';
+                    }
+                } else {
+                    results.innerHTML += '<span class="error">❌ 内存数据流: 异常</span>\n';
+                }
+
+                results.innerHTML += '\n3️⃣ 检查存储一致性...\n';
+
+                // 检查存储一致性
+                let storageConsistent = true;
+                let errorMessage = '';
+
+                try {
+                    if (window.indexedDBStorage) {
+                        const oldData = await window.indexedDBStorage.loadData();
+                        const memoryCount = window.notesData ? Object.keys(window.notesData.notes || {}).length : 0;
+                        const oldCount = Object.keys(oldData.notes || {}).length;
+                        
+                        if (memoryCount !== oldCount) {
+                            storageConsistent = false;
+                            errorMessage = `内存数据(${memoryCount})与旧存储(${oldCount})不一致`;
+                        }
+                    }
+                } catch (error) {
+                    storageConsistent = false;
+                    errorMessage = `旧存储检查失败: ${error.message}`;
+                }
+
+                if (storageConsistent) {
+                    results.innerHTML += '<span class="success">✅ 存储一致性: 正常</span>\n';
+                } else {
+                    results.innerHTML += `<span class="conflict">⚠️ 存储一致性: 异常</span>\n`;
+                    results.innerHTML += `   • 问题: ${errorMessage}\n`;
+                }
+
+            } catch (error) {
+                results.innerHTML += `<span class="error">❌ 业务逻辑检查失败: ${error.message}</span>\n`;
+                console.error('业务逻辑检查详细错误:', error);
+            }
+        }
+
+        // 修复数据冲突
+        async function fixDataConflict() {
+            const results = document.getElementById('diagnosticResults');
+            results.innerHTML = '🔧 修复数据冲突...\n\n';
+
+            try {
+                results.innerHTML += '⚠️ 警告：此操作将尝试修复数据冲突，可能会影响现有数据！\n\n';
+
+                // 1. 备份当前数据
+                results.innerHTML += '1️⃣ 备份当前数据...\n';
+                if (window.indexedDBStorage) {
+                    try {
+                        const currentData = await window.indexedDBStorage.loadData();
+                        await window.indexedDBStorage.backupData(currentData);
+                        results.innerHTML += '<span class="success">✅ 数据备份成功</span>\n';
+                    } catch (error) {
+                        results.innerHTML += `<span class="error">❌ 数据备份失败: ${error.message}</span>\n`;
+                        return;
+                    }
+                }
+
+                // 2. 确定数据源优先级
+                results.innerHTML += '\n2️⃣ 确定数据源优先级...\n';
+                let primaryData = null;
+                let primarySource = '';
+
+                // 优先使用内存数据（如果存在）
+                if (window.notesData && window.notesData.notes && Object.keys(window.notesData.notes).length > 0) {
+                    primaryData = window.notesData;
+                    primarySource = '内存数据';
+                    results.innerHTML += '<span class="info">ℹ️ 使用内存数据作为主要数据源</span>\n';
+                } else if (window.indexedDBStorage) {
+                    try {
+                        primaryData = await window.indexedDBStorage.loadData();
+                        primarySource = '旧存储系统';
+                        results.innerHTML += '<span class="info">ℹ️ 使用旧存储系统作为主要数据源</span>\n';
+                    } catch (error) {
+                        results.innerHTML += `<span class="error">❌ 无法从旧存储系统加载数据: ${error.message}</span>\n`;
+                        return;
+                    }
+                } else {
+                    results.innerHTML += '<span class="error">❌ 没有可用的数据源</span>\n';
+                    return;
+                }
+
+                // 3. 同步到所有数据源
+                results.innerHTML += '\n3️⃣ 同步数据到所有数据源...\n';
+
+                // 同步到旧存储系统
+                if (window.indexedDBStorage && primarySource !== '旧存储系统') {
+                    try {
+                        await window.indexedDBStorage.saveData(primaryData);
+                        results.innerHTML += '<span class="success">✅ 同步到旧存储系统成功</span>\n';
+                    } catch (error) {
+                        results.innerHTML += `<span class="error">❌ 同步到旧存储系统失败: ${error.message}</span>\n`;
+                    }
+                }
+
+                // 同步到新存储系统
+                if (window.atomicStorage) {
+                    try {
+                        await window.atomicStorage.init();
+                        // 这里需要实现数据转换逻辑
+                        results.innerHTML += '<span class="warning">⚠️ 新存储系统同步需要手动实现</span>\n';
+                    } catch (error) {
+                        results.innerHTML += `<span class="error">❌ 同步到新存储系统失败: ${error.message}</span>\n`;
+                    }
+                }
+
+                // 4. 验证修复结果
+                results.innerHTML += '\n4️⃣ 验证修复结果...\n';
+                await checkDataSources();
+
+                results.innerHTML += '\n✅ 数据冲突修复完成！\n';
+                results.innerHTML += '建议：重新加载页面以确保所有更改生效。\n';
+
+            } catch (error) {
+                results.innerHTML += `<span class="error">❌ 数据冲突修复失败: ${error.message}</span>\n`;
+                console.error('数据冲突修复详细错误:', error);
+            }
+        }
+
+        // 页面加载完成后检查系统状态
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                checkSystemStatus();
+            }, 500);
+        });
+    </script>
+</body>
+</html>

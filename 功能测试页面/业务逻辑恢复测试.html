@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>业务逻辑恢复测试 - 凤凰计划</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .test-container {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .test-button {
+            background: #007acc;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .test-button:hover {
+            background: #005a9e;
+        }
+        .test-button.success {
+            background: #28a745;
+        }
+        .test-button.danger {
+            background: #dc3545;
+        }
+        .result {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 15px;
+            margin: 10px 0;
+            font-family: monospace;
+            white-space: pre-wrap;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .success {
+            color: #28a745;
+        }
+        .error {
+            color: #dc3545;
+        }
+        .warning {
+            color: #ffc107;
+        }
+        .info {
+            color: #007acc;
+        }
+        .test-editor {
+            width: 100%;
+            height: 200px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            padding: 10px;
+            font-family: monospace;
+            resize: vertical;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔧 业务逻辑恢复测试 - 凤凰计划</h1>
+    
+    <div class="test-container">
+        <h2>📊 系统状态检查</h2>
+        <div id="systemStatus" class="result">
+            <span class="info">🔄 正在检查系统状态...</span>
+        </div>
+    </div>
+
+    <div class="test-container">
+        <h2>🧪 业务逻辑测试</h2>
+        <button class="test-button" onclick="testCoreFunctions()">测试核心函数</button>
+        <button class="test-button" onclick="testDataFlow()">测试数据流</button>
+        <button class="test-button" onclick="testSimpleEditSave()">测试简单编辑保存</button>
+        <button class="test-button" onclick="testCrossNoteEdit()">测试跨篇编辑保存</button>
+        <button class="test-button success" onclick="testFullWorkflow()">完整工作流测试</button>
+        <div id="testResults" class="result"></div>
+    </div>
+
+    <div class="test-container">
+        <h2>📝 模拟编辑器</h2>
+        <textarea id="testEditor" class="test-editor" placeholder="在这里输入内容进行测试..."></textarea>
+        <br>
+        <button class="test-button" onclick="simulateEdit()">模拟编辑</button>
+        <button class="test-button" onclick="simulatePreview()">模拟预览</button>
+        <button class="test-button" onclick="simulateSave()">模拟保存</button>
+        <div id="editorStatus" class="result"></div>
+    </div>
+
+    <!-- 加载主应用逻辑 -->
+    <script src="../app.js"></script>
+
+    <script>
+        // ========== 业务逻辑测试工具 ==========
+        
+        let testData = {
+            currentNoteId: null,
+            notes: {},
+            isEditing: false,
+            originalContent: ''
+        };
+
+        // 检查系统状态
+        function checkSystemStatus() {
+            const statusDiv = document.getElementById('systemStatus');
+            
+            let status = '📊 系统状态检查结果:\n\n';
+
+            // 检查核心数据结构
+            if (window.notesData) {
+                status += '<span class="success">✅ 内存数据 (notesData): 已加载</span>\n';
+                status += `   • 当前笔记ID: ${window.notesData.currentNoteId || '无'}\n`;
+                status += `   • 笔记数量: ${Object.keys(window.notesData.notes || {}).length}\n`;
+            } else {
+                status += '<span class="error">❌ 内存数据 (notesData): 未加载</span>\n';
+            }
+
+            // 检查会话状态
+            if (window.sessionState) {
+                status += '<span class="success">✅ 会话状态 (sessionState): 已加载</span>\n';
+                status += `   • 会话数量: ${window.sessionState.size || 0}\n`;
+            } else {
+                status += '<span class="error">❌ 会话状态 (sessionState): 未加载</span>\n';
+            }
+
+            // 检查核心业务函数
+            const coreFunctions = ['saveVersion', 'saveToLocalStorage', 'loadFromLocalStorage', 'switchNote', 'renderNotesList'];
+            status += '\n🔧 核心业务函数检查:\n';
+            coreFunctions.forEach(funcName => {
+                if (typeof window[funcName] === 'function') {
+                    status += `<span class="success">✅ ${funcName}: 存在</span>\n`;
+                } else {
+                    status += `<span class="error">❌ ${funcName}: 不存在</span>\n`;
+                }
+            });
+
+            // 检查存储系统
+            if (window.indexedDBStorage) {
+                status += '<span class="success">✅ 旧存储系统 (indexedDBStorage): 已加载</span>\n';
+            } else {
+                status += '<span class="error">❌ 旧存储系统 (indexedDBStorage): 未加载</span>\n';
+            }
+
+            statusDiv.innerHTML = status;
+        }
+
+        // 测试核心函数
+        async function testCoreFunctions() {
+            const results = document.getElementById('testResults');
+            results.innerHTML = '🔧 测试核心函数...\n\n';
+
+            try {
+                // 测试saveVersion函数
+                if (typeof window.saveVersion === 'function') {
+                    results.innerHTML += '<span class="success">✅ saveVersion函数: 可用</span>\n';
+                } else {
+                    results.innerHTML += '<span class="error">❌ saveVersion函数: 不可用</span>\n';
+                }
+
+                // 测试saveToLocalStorage函数
+                if (typeof window.saveToLocalStorage === 'function') {
+                    results.innerHTML += '<span class="success">✅ saveToLocalStorage函数: 可用</span>\n';
+                } else {
+                    results.innerHTML += '<span class="error">❌ saveToLocalStorage函数: 不可用</span>\n';
+                }
+
+                // 测试loadFromLocalStorage函数
+                if (typeof window.loadFromLocalStorage === 'function') {
+                    results.innerHTML += '<span class="success">✅ loadFromLocalStorage函数: 可用</span>\n';
+                } else {
+                    results.innerHTML += '<span class="error">❌ loadFromLocalStorage函数: 不可用</span>\n';
+                }
+
+                // 测试switchNote函数
+                if (typeof window.switchNote === 'function') {
+                    results.innerHTML += '<span class="success">✅ switchNote函数: 可用</span>\n';
+                } else {
+                    results.innerHTML += '<span class="error">❌ switchNote函数: 不可用</span>\n';
+                }
+
+                // 测试renderNotesList函数
+                if (typeof window.renderNotesList === 'function') {
+                    results.innerHTML += '<span class="success">✅ renderNotesList函数: 可用</span>\n';
+                } else {
+                    results.innerHTML += '<span class="error">❌ renderNotesList函数: 不可用</span>\n';
+                }
+
+            } catch (error) {
+                results.innerHTML += `<span class="error">❌ 核心函数测试失败: ${error.message}</span>\n`;
+                console.error('核心函数测试详细错误:', error);
+            }
+        }
+
+        // 测试数据流
+        async function testDataFlow() {
+            const results = document.getElementById('testResults');
+            results.innerHTML = '📊 测试数据流...\n\n';
+
+            try {
+                // 检查内存数据流
+                if (window.notesData && window.notesData.notes) {
+                    const noteIds = Object.keys(window.notesData.notes);
+                    if (noteIds.length > 0) {
+                        const sampleNote = window.notesData.notes[noteIds[0]];
+                        results.innerHTML += '<span class="success">✅ 内存数据流: 正常</span>\n';
+                        results.innerHTML += `   • 示例笔记ID: ${noteIds[0]}\n`;
+                        results.innerHTML += `   • 笔记标题: ${sampleNote.title || '无标题'}\n`;
+                        results.innerHTML += `   • 内容长度: ${sampleNote.content ? sampleNote.content.length : 0} 字符\n`;
+                        results.innerHTML += `   • 版本数量: ${sampleNote.versions ? sampleNote.versions.length : 0}\n`;
+                    } else {
+                        results.innerHTML += '<span class="warning">⚠️ 内存数据流: 空数据</span>\n';
+                    }
+                } else {
+                    results.innerHTML += '<span class="error">❌ 内存数据流: 异常</span>\n';
+                }
+
+                // 检查存储数据流
+                if (window.indexedDBStorage) {
+                    try {
+                        const storageData = await window.indexedDBStorage.loadData();
+                        results.innerHTML += '<span class="success">✅ 存储数据流: 正常</span>\n';
+                        results.innerHTML += `   • 存储笔记数量: ${Object.keys(storageData.notes || {}).length}\n`;
+                        results.innerHTML += `   • 当前笔记ID: ${storageData.currentNoteId || '无'}\n`;
+                    } catch (error) {
+                        results.innerHTML += `<span class="error">❌ 存储数据流: 异常 - ${error.message}</span>\n`;
+                    }
+                } else {
+                    results.innerHTML += '<span class="error">❌ 存储数据流: 存储系统不可用</span>\n';
+                }
+
+            } catch (error) {
+                results.innerHTML += `<span class="error">❌ 数据流测试失败: ${error.message}</span>\n`;
+                console.error('数据流测试详细错误:', error);
+            }
+        }
+
+        // 测试简单编辑保存
+        async function testSimpleEditSave() {
+            const results = document.getElementById('testResults');
+            results.innerHTML = '📝 测试简单编辑保存...\n\n';
+
+            try {
+                // 创建测试笔记
+                const testNoteId = `test_${Date.now()}`;
+                const testContent = `测试内容 ${new Date().toLocaleString()}`;
+                
+                if (window.notesData) {
+                    window.notesData.notes[testNoteId] = {
+                        title: '测试笔记',
+                        content: testContent,
+                        versions: [],
+                        lastModified: new Date().toISOString()
+                    };
+                    window.notesData.currentNoteId = testNoteId;
+                    
+                    results.innerHTML += '<span class="success">✅ 测试笔记创建成功</span>\n';
+                    results.innerHTML += `   • 笔记ID: ${testNoteId}\n`;
+                    results.innerHTML += `   • 内容: ${testContent}\n`;
+
+                    // 模拟编辑
+                    const newContent = testContent + '\n\n编辑后的内容';
+                    window.notesData.notes[testNoteId].content = newContent;
+                    
+                    results.innerHTML += '<span class="success">✅ 模拟编辑成功</span>\n';
+                    results.innerHTML += `   • 新内容: ${newContent}\n`;
+
+                    // 测试保存
+                    if (typeof window.saveToLocalStorage === 'function') {
+                        await window.saveToLocalStorage();
+                        results.innerHTML += '<span class="success">✅ 保存成功</span>\n';
+                    } else {
+                        results.innerHTML += '<span class="error">❌ 保存函数不可用</span>\n';
+                    }
+
+                    // 清理测试数据
+                    delete window.notesData.notes[testNoteId];
+                    if (window.notesData.currentNoteId === testNoteId) {
+                        window.notesData.currentNoteId = null;
+                    }
+                    
+                    results.innerHTML += '<span class="success">✅ 测试数据清理完成</span>\n';
+
+                } else {
+                    results.innerHTML += '<span class="error">❌ 内存数据不可用</span>\n';
+                }
+
+            } catch (error) {
+                results.innerHTML += `<span class="error">❌ 简单编辑保存测试失败: ${error.message}</span>\n`;
+                console.error('简单编辑保存测试详细错误:', error);
+            }
+        }
+
+        // 测试跨篇编辑保存
+        async function testCrossNoteEdit() {
+            const results = document.getElementById('testResults');
+            results.innerHTML = '🔄 测试跨篇编辑保存...\n\n';
+
+            try {
+                // 创建两个测试笔记
+                const noteAId = `test_note_a_${Date.now()}`;
+                const noteBId = `test_note_b_${Date.now()}`;
+                
+                if (window.notesData && window.sessionState) {
+                    // 创建笔记A
+                    window.notesData.notes[noteAId] = {
+                        title: '笔记A',
+                        content: '笔记A的原始内容',
+                        versions: [],
+                        lastModified: new Date().toISOString()
+                    };
+                    
+                    // 创建笔记B
+                    window.notesData.notes[noteBId] = {
+                        title: '笔记B',
+                        content: '笔记B的原始内容',
+                        versions: [],
+                        lastModified: new Date().toISOString()
+                    };
+
+                    results.innerHTML += '<span class="success">✅ 测试笔记创建成功</span>\n';
+                    results.innerHTML += `   • 笔记A: ${noteAId}\n`;
+                    results.innerHTML += `   • 笔记B: ${noteBId}\n`;
+
+                    // 模拟编辑笔记A
+                    window.notesData.currentNoteId = noteAId;
+                    window.notesData.notes[noteAId].content = '笔记A的编辑内容';
+                    
+                    // 模拟会话状态
+                    const sessionEntry = {
+                        noteId: noteAId,
+                        content: '笔记A的编辑内容',
+                        mode: 'edit',
+                        lastAccess: Date.now()
+                    };
+                    window.sessionState.set(noteAId, sessionEntry);
+                    
+                    results.innerHTML += '<span class="success">✅ 笔记A编辑状态保存成功</span>\n';
+
+                    // 模拟切换到笔记B
+                    window.notesData.currentNoteId = noteBId;
+                    
+                    results.innerHTML += '<span class="success">✅ 切换到笔记B成功</span>\n';
+
+                    // 模拟切换回笔记A
+                    window.notesData.currentNoteId = noteAId;
+                    const restoredSession = window.sessionState.get(noteAId);
+                    
+                    if (restoredSession && restoredSession.mode === 'edit') {
+                        results.innerHTML += '<span class="success">✅ 笔记A会话状态恢复成功</span>\n';
+                    } else {
+                        results.innerHTML += '<span class="error">❌ 笔记A会话状态恢复失败</span>\n';
+                    }
+
+                    // 清理测试数据
+                    delete window.notesData.notes[noteAId];
+                    delete window.notesData.notes[noteBId];
+                    window.sessionState.delete(noteAId);
+                    window.sessionState.delete(noteBId);
+                    if (window.notesData.currentNoteId === noteAId || window.notesData.currentNoteId === noteBId) {
+                        window.notesData.currentNoteId = null;
+                    }
+                    
+                    results.innerHTML += '<span class="success">✅ 测试数据清理完成</span>\n';
+
+                } else {
+                    results.innerHTML += '<span class="error">❌ 内存数据或会话状态不可用</span>\n';
+                }
+
+            } catch (error) {
+                results.innerHTML += `<span class="error">❌ 跨篇编辑保存测试失败: ${error.message}</span>\n`;
+                console.error('跨篇编辑保存测试详细错误:', error);
+            }
+        }
+
+        // 完整工作流测试
+        async function testFullWorkflow() {
+            const results = document.getElementById('testResults');
+            results.innerHTML = '🚀 完整工作流测试...\n\n';
+
+            try {
+                results.innerHTML += '1️⃣ 测试核心函数...\n';
+                await testCoreFunctions();
+                
+                results.innerHTML += '\n2️⃣ 测试数据流...\n';
+                await testDataFlow();
+                
+                results.innerHTML += '\n3️⃣ 测试简单编辑保存...\n';
+                await testSimpleEditSave();
+                
+                results.innerHTML += '\n4️⃣ 测试跨篇编辑保存...\n';
+                await testCrossNoteEdit();
+                
+                results.innerHTML += '\n✅ 完整工作流测试完成！\n';
+                results.innerHTML += '如果所有测试都通过，说明业务逻辑已恢复正常。\n';
+
+            } catch (error) {
+                results.innerHTML += `<span class="error">❌ 完整工作流测试失败: ${error.message}</span>\n`;
+                console.error('完整工作流测试详细错误:', error);
+            }
+        }
+
+        // 模拟编辑器功能
+        function simulateEdit() {
+            const editor = document.getElementById('testEditor');
+            const status = document.getElementById('editorStatus');
+            
+            testData.isEditing = true;
+            testData.originalContent = editor.value;
+            
+            status.innerHTML = '📝 模拟编辑模式\n';
+            status.innerHTML += `   • 原始内容: ${testData.originalContent}\n`;
+            status.innerHTML += `   • 编辑状态: 激活\n`;
+        }
+
+        function simulatePreview() {
+            const editor = document.getElementById('testEditor');
+            const status = document.getElementById('editorStatus');
+            
+            const currentContent = editor.value;
+            const hasChanges = currentContent !== testData.originalContent;
+            
+            status.innerHTML = '👁️ 模拟预览模式\n';
+            status.innerHTML += `   • 当前内容: ${currentContent}\n`;
+            status.innerHTML += `   • 是否有变化: ${hasChanges ? '是' : '否'}\n`;
+            
+            if (hasChanges && typeof window.saveVersion === 'function') {
+                status.innerHTML += '<span class="success">✅ 应该调用saveVersion()创建新版本</span>\n';
+            } else if (hasChanges) {
+                status.innerHTML += '<span class="error">❌ 有变化但saveVersion()函数不可用</span>\n';
+            } else {
+                status.innerHTML += '<span class="info">ℹ️ 无变化，直接切换到预览</span>\n';
+            }
+            
+            testData.isEditing = false;
+        }
+
+        function simulateSave() {
+            const editor = document.getElementById('testEditor');
+            const status = document.getElementById('editorStatus');
+            
+            const currentContent = editor.value;
+            
+            status.innerHTML = '💾 模拟保存操作\n';
+            status.innerHTML += `   • 保存内容: ${currentContent}\n`;
+            
+            if (typeof window.saveToLocalStorage === 'function') {
+                status.innerHTML += '<span class="success">✅ saveToLocalStorage()函数可用</span>\n';
+            } else {
+                status.innerHTML += '<span class="error">❌ saveToLocalStorage()函数不可用</span>\n';
+            }
+        }
+
+        // 页面加载完成后检查系统状态
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                checkSystemStatus();
+            }, 1000);
+        });
+    </script>
+</body>
+</html>

@@ -12,6 +12,64 @@ const notesData = {
     notes: {}
 };
 
+// ========== 全局应用管理器 ==========
+// 统一管理所有全局变量，避免污染全局命名空间
+window.NoteApp = {
+    // 核心数据
+    notesData: notesData,
+    
+    // 存储系统
+    get indexedDBStorage() { return window.indexedDBStorage; },
+    get atomicStorage() { return window.atomicStorage; },
+    
+    // 性能优化
+    get performanceOptimizer() { return window.performanceOptimizer; },
+    
+    // 数据迁移
+    get dataMigration() { return window.dataMigration; },
+    
+    // 工具函数
+    migrateToAtomicStructure: async function() {
+        return window.migrateToAtomicStructure ? await window.migrateToAtomicStructure() : null;
+    },
+    
+    checkMigrationStatus: async function() {
+        return window.checkMigrationStatus ? await window.checkMigrationStatus() : null;
+    },
+    
+    // 后台同步服务
+    startBackgroundSync: function() {
+        if (typeof startBackgroundSync === 'function') {
+            console.log('通过NoteApp调用startBackgroundSync...');
+            startBackgroundSync();
+        } else {
+            console.error('startBackgroundSync函数不存在');
+        }
+    },
+    
+    validateDataConsistency: function() {
+        if (typeof validateDataConsistency === 'function') {
+            console.log('通过NoteApp调用validateDataConsistency...');
+            validateDataConsistency();
+        } else {
+            console.error('validateDataConsistency函数不存在');
+        }
+    },
+    
+    // 获取应用状态
+    getStatus: function() {
+        return {
+            atomicStorageLoaded: !!window.atomicStorage,
+            indexedDBStorageLoaded: !!window.indexedDBStorage,
+            notesDataLoaded: !!notesData && !!notesData.notes,
+            notesCount: notesData ? Object.keys(notesData.notes || {}).length : 0
+        };
+    }
+};
+
+// 保持向后兼容性
+window.notesData = notesData;
+
 // ========== 会话状态档案馆 ==========
 const sessionState = new Map();
 
@@ -44,12 +102,19 @@ class SessionState {
     // 恢复到CodeMirror实例
     restoreToCodeMirror(cmEditor) {
         try {
+            // 首先恢复保存的内容
+            if (this.content) {
+                cmEditor.setValue(this.content);
+            }
+            // 然后恢复历史记录
             if (this.history) {
                 cmEditor.setHistory(this.history);
             }
+            // 恢复光标位置
             if (this.cursor) {
                 cmEditor.setCursor(this.cursor);
             }
+            // 恢复滚动位置
             if (this.scrollPosition) {
                 cmEditor.scrollTo(this.scrollPosition.left, this.scrollPosition.top);
             }
@@ -578,6 +643,20 @@ async function init() {
     } catch (error) {
         console.warn('IndexedDB 存储模块加载失败，使用 localStorage:', error);
     }
+
+    // ========== 重新启用原子化存储模块（双轨制运行 - 阶段一） ==========
+    try {
+        await loadScript('atomic-storage.js');
+        console.log('原子化存储模块加载成功（只读模式）');
+        
+        // 初始化原子化存储
+        await window.atomicStorage.init();
+        
+        // 注意：后台同步服务和数据一致性验证将在数据加载完成后启动
+        
+    } catch (error) {
+        console.warn('原子化存储模块加载失败，继续使用旧存储:', error);
+    }
     
     // ========== 加载性能优化模块 ==========
     try {
@@ -632,6 +711,222 @@ async function init() {
     
     // 初始化字数统计
     updateWordCount();
+    
+    // ========== 启动后台同步服务（在数据加载完成后） ==========
+    console.log('检查后台同步服务启动条件...');
+    const appStatus = window.NoteApp.getStatus();
+    console.log('应用状态:', appStatus);
+    
+    if (appStatus.atomicStorageLoaded && appStatus.notesDataLoaded && appStatus.notesCount > 0) {
+        console.log('数据加载完成，启动后台同步服务...');
+        try {
+            startBackgroundSync();
+            validateDataConsistency();
+        } catch (error) {
+            console.error('启动后台同步服务失败:', error);
+        }
+    } else {
+        console.log('等待数据加载完成后再启动后台同步服务...');
+        // 延迟启动，确保数据已加载
+        setTimeout(() => {
+            console.log('延迟检查后台同步服务启动条件...');
+            const delayedStatus = window.NoteApp.getStatus();
+            console.log('延迟应用状态:', delayedStatus);
+            
+            if (delayedStatus.atomicStorageLoaded && delayedStatus.notesDataLoaded && delayedStatus.notesCount > 0) {
+                console.log('延迟启动后台同步服务...');
+                try {
+                    startBackgroundSync();
+                    validateDataConsistency();
+                } catch (error) {
+                    console.error('延迟启动后台同步服务失败:', error);
+                }
+            } else {
+                console.warn('数据仍未加载完成，跳过后台同步服务启动');
+                console.warn('可能的原因：notesData结构不正确或数据加载失败');
+            }
+        }, 2000);
+    }
+    
+    // ========== 后台同步服务 ==========
+    window.backgroundSyncInterval = null;
+    
+    // 后台数据同步服务
+    async function startBackgroundSync() {
+        try {
+            // 每5分钟同步一次数据
+            window.backgroundSyncInterval = setInterval(async () => {
+                try {
+                    await syncToAtomicStorage();
+                } catch (error) {
+                    console.warn('后台同步失败:', error);
+                }
+            }, 300000); // 5分钟
+            
+            // 立即执行一次同步
+            await syncToAtomicStorage();
+            console.log('后台同步服务启动成功');
+        } catch (error) {
+            console.error('启动后台同步服务时出错:', error);
+        }
+    }
+    
+    // 同步数据到原子化存储（增量同步）
+    async function syncToAtomicStorage() {
+        if (!window.atomicStorage || !window.notesData) return;
+        
+        const notes = window.notesData.notes;
+        let syncCount = 0;
+        let newNotesCount = 0;
+        let updatedNotesCount = 0;
+        
+        try {
+            // 获取原子化存储中已有的笔记元数据
+            const existingMetadata = await window.atomicStorage.getAllNoteMetadata();
+            const existingNoteIds = new Set(existingMetadata.map(note => note.id));
+            
+            for (const [noteId, note] of Object.entries(notes)) {
+                try {
+                    const isNewNote = !existingNoteIds.has(noteId);
+                    
+                    // 转换为原子化结构
+                    const atomicNote = {
+                        id: noteId,
+                        title: note.title || '未命名笔记',
+                        content: note.content || '',
+                        metadata: {
+                            lastModified: note.lastModified || new Date().toISOString(),
+                            version: 1,
+                            tags: note.tags || [],
+                            created: note.created || new Date().toISOString()
+                        }
+                    };
+                    
+                    if (isNewNote) {
+                        // 新笔记：完整保存
+                        await window.atomicStorage.saveNote(atomicNote);
+                        newNotesCount++;
+                        
+                        // 同步版本历史（只对新笔记）
+                        if (note.versions && Array.isArray(note.versions)) {
+                            for (const version of note.versions) {
+                                await window.atomicStorage.addVersion(noteId, {
+                                    content: version.content,
+                                    timestamp: version.timestamp
+                                });
+                            }
+                        }
+                    } else {
+                        // 已存在的笔记：检查是否需要更新
+                        const existingNote = await window.atomicStorage.getNote(noteId);
+                        if (existingNote && existingNote.content !== note.content) {
+                            // 内容有变化，更新笔记
+                            await window.atomicStorage.saveNote(atomicNote);
+                            updatedNotesCount++;
+                        }
+                    }
+                    
+                    syncCount++;
+                } catch (error) {
+                    console.error(`同步笔记 ${noteId} 失败:`, error);
+                }
+            }
+            
+            console.log(`后台数据同步完成：处理了 ${syncCount} 个笔记，新增 ${newNotesCount} 个，更新 ${updatedNotesCount} 个`);
+            
+        } catch (error) {
+            console.error('获取原子化存储元数据失败:', error);
+        }
+    }
+    
+    // 数据一致性验证和修复
+    async function validateDataConsistency() {
+        if (!window.atomicStorage || !window.notesData) return;
+        
+        try {
+            const atomicMetadata = await window.atomicStorage.getAllNoteMetadata();
+            const legacyNotes = Object.keys(window.notesData.notes);
+            
+            const atomicIds = atomicMetadata.map(note => note.id);
+            const legacyIds = legacyNotes;
+            
+            // 检查笔记数量一致性
+            if (atomicIds.length !== legacyIds.length) {
+                console.warn('数据不一致：笔记数量不匹配', {
+                    atomic: atomicIds.length,
+                    legacy: legacyIds.length
+                });
+                
+                // 尝试修复数据不一致
+                await fixDataInconsistency(atomicIds, legacyIds);
+                return false;
+            }
+            
+            // 检查笔记ID一致性
+            const missingInAtomic = legacyIds.filter(id => !atomicIds.includes(id));
+            const missingInLegacy = atomicIds.filter(id => !legacyIds.includes(id));
+            
+            if (missingInAtomic.length > 0 || missingInLegacy.length > 0) {
+                console.warn('数据不一致：笔记ID不匹配', {
+                    missingInAtomic,
+                    missingInLegacy
+                });
+                
+                // 尝试修复数据不一致
+                await fixDataInconsistency(atomicIds, legacyIds);
+                return false;
+            }
+            
+            console.log('数据一致性验证通过');
+            return true;
+        } catch (error) {
+            console.error('数据一致性验证失败:', error);
+            return false;
+        }
+    }
+    
+    // 修复数据不一致
+    async function fixDataInconsistency(atomicIds, legacyIds) {
+        try {
+            console.log('开始修复数据不一致...');
+            
+            // 找出原子化存储中多余的笔记（在旧存储中不存在的）
+            const extraInAtomic = atomicIds.filter(id => !legacyIds.includes(id));
+            
+            if (extraInAtomic.length > 0) {
+                console.log(`发现 ${extraInAtomic.length} 个多余的笔记，准备清理...`);
+                
+                // 清理多余的笔记
+                for (const noteId of extraInAtomic) {
+                    try {
+                        // 删除笔记及其所有版本
+                        await window.atomicStorage.deleteNote(noteId);
+                        console.log(`已删除多余笔记: ${noteId}`);
+                    } catch (error) {
+                        console.error(`删除笔记 ${noteId} 失败:`, error);
+                    }
+                }
+                
+                console.log('数据清理完成');
+            }
+            
+            // 重新验证一致性
+            const newAtomicMetadata = await window.atomicStorage.getAllNoteMetadata();
+            const newAtomicIds = newAtomicMetadata.map(note => note.id);
+            
+            if (newAtomicIds.length === legacyIds.length) {
+                console.log('数据不一致修复成功');
+                return true;
+            } else {
+                console.warn('数据不一致修复失败，需要手动处理');
+                return false;
+            }
+            
+        } catch (error) {
+            console.error('修复数据不一致失败:', error);
+            return false;
+        }
+    }
     
     // ========== 自动保存机制 ==========
     // 1. 页面关闭前自动保存
@@ -1227,13 +1522,15 @@ function enterEditMode(isRestoringSession = false) {
             if (window.setupCodeMirrorAutoSave) setupCodeMirrorAutoSave();
         }
         cmEditor.getWrapperElement().style.display = 'block';
-        cmEditor.setValue(noteEditorEl.value);
-
+        
         const sessionEntry = sessionState.get(notesData.currentNoteId);
         if (isRestoringSession && sessionEntry) {
+            // 恢复会话时，让restoreToCodeMirror来设置内容
             sessionEntry.restoreToCodeMirror(cmEditor);
         } else {
-            // 如果不是恢复会话，或者找不到会话，就建立一个新的干净起点
+            // 如果不是恢复会话，使用笔记的原始内容
+            cmEditor.setValue(noteEditorEl.value);
+            // 建立一个新的干净起点
             cmEditor.markClean();
         }
 
@@ -2693,11 +2990,62 @@ function forceUpdate() {
     }, 1000);
 }
 
-// 定期检查更新
-setInterval(() => {
-    if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.ready.then(function(registration) {
-            registration.update();
+    // 定期检查更新
+    setInterval(() => {
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.ready.then(function(registration) {
+                registration.update();
+            });
+        }
+    }, 30 * 60 * 1000); // 每30分钟检查一次
+
+    // 原子化存储迁移按钮事件监听器
+    const atomicMigrationBtn = document.getElementById('atomicMigrationBtn');
+    if (atomicMigrationBtn) {
+        atomicMigrationBtn.addEventListener('click', async () => {
+            try {
+                showToast('🚀 开始升级到原子化存储架构...', 3000);
+                const success = await window.migrateToAtomicStructure();
+                if (success) {
+                    showToast('✅ 架构升级成功！', 5000);
+                    
+                    // 迁移成功后隐藏按钮
+                    atomicMigrationBtn.classList.add('hidden');
+                    
+                    // 刷新页面以应用新架构
+                    setTimeout(() => {
+                        if (confirm('架构升级完成，是否刷新页面以应用新功能？')) {
+                            location.reload();
+                        }
+                    }, 1000);
+                } else {
+                    showToast('❌ 架构升级失败，请检查控制台错误信息', 5000);
+                }
+            } catch (error) {
+                console.error('架构升级失败:', error);
+                showToast('❌ 架构升级失败: ' + error.message, 5000);
+            }
         });
+        
+        // 检查迁移状态，如果已经迁移完成则隐藏按钮
+        checkMigrationStatusAndHideButton();
     }
-}, 30 * 60 * 1000); // 每30分钟检查一次
+    
+    // 检查迁移状态并隐藏按钮的函数
+    async function checkMigrationStatusAndHideButton() {
+        try {
+            if (window.checkMigrationStatus) {
+                const status = await window.checkMigrationStatus();
+                // 如果已经有新数据且不需要迁移，则隐藏按钮
+                if (status.hasNewData && !status.needsMigration) {
+                    const atomicMigrationBtn = document.getElementById('atomicMigrationBtn');
+                    if (atomicMigrationBtn) {
+                        atomicMigrationBtn.classList.add('hidden');
+                        console.log('检测到已完成迁移，隐藏迁移按钮');
+                    }
+                }
+            }
+        } catch (error) {
+            console.log('检查迁移状态失败:', error);
+        }
+    }
