@@ -563,6 +563,20 @@ pre, code {
   color: var(--text-muted);
 }
 
+/* ========== YAML front matter 美化（仿Typora/GitHub） ========== */
+.front-matter {
+  background: var(--accent-light);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  color: #6a737d;
+  font-family: var(--font-mono), monospace;
+  font-size: 0.98em;
+  padding: var(--spacing-lg) var(--spacing-xl);
+  margin-bottom: var(--spacing-xl); /* 和正文内容隔开一点距离 */
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
 /* ========== Markdown 内容样式 ========== */
 .markdown-body {
   width: 100%;
@@ -893,7 +907,7 @@ pre, code {
   margin-top: var(--spacing-sm);
   background: var(--accent-light);
   border-radius: var(--radius-md);
-  border: 1px solid var(--border-light);
+  border: 1px solid var(--border-color);
   transition: opacity 0.3s, transform 0.3s;
 }
 
@@ -910,6 +924,8 @@ pre, code {
   font-family: var(--font-mono);
   font-size: 0.875rem;
   margin: 2px 0;
+  white-space: pre-wrap;
+  word-break: break-all;
 }
 
 .diff-removed {
@@ -921,6 +937,13 @@ pre, code {
   font-size: 0.875rem;
   margin: 2px 0;
   text-decoration: line-through;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+/* 隐藏新版逻辑中可能出现的"未改动"行，以保持旧版风格 */
+.diff-context {
+  display: none;
 }
 
 /* ========== 工具类 ========== */
@@ -2224,4 +2247,48 @@ code {
   display: none !important;
 }
 
+/* ========== 全局页面状态管理 ========== */
 
+.fullscreen-welcome {
+    display: none; /* 默认隐藏 */
+}
+
+/* 当处于欢迎模式时 (.welcome-mode 加在 .main-content-wrapper 上) */
+.main-content-wrapper.welcome-mode .fullscreen-welcome {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    position: absolute;
+    inset: 0; /* 铺满整个 main-content-wrapper */
+    background: var(--primary-bg);
+    z-index: 100; /* 层级最高，覆盖其他所有内容 */
+    cursor: pointer;
+    text-align: center;
+    color: var(--text-secondary);
+    transition: opacity 0.3s ease;
+}
+
+.welcome-content {
+    max-width: 400px;
+}
+.welcome-icon {
+    font-size: 4rem;
+    color: var(--accent-color);
+    margin-bottom: 1.5rem;
+}
+.welcome-content h1 {
+    font-size: 2rem;
+    color: var(--text-main);
+    margin-bottom: 0.5rem;
+}
+.welcome-content p {
+    font-size: 1.1rem;
+    line-height: 1.6;
+}
+
+/* 关键：当处于欢迎模式时，隐藏笔记头部和主内容面板 */
+.main-content-wrapper.welcome-mode .note-header,
+.main-content-wrapper.welcome-mode .note-main-panel {
+    display: none;
+}

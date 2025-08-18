@@ -78,6 +78,8 @@
         <div class="drawer-mask"></div>
         <!-- 主内容区 -->
         <div class="main-content-wrapper">
+            <!-- 全屏欢迎页面 -->
+            <div id="fullscreenWelcome" class="fullscreen-welcome"></div>
             <!-- 云同步按钮和弹窗 -->
             <div class="cloud-sync-bar">
                 <button id="importAllBtn" class="import-all-btn" title="导入全部笔记" aria-label="导入全部笔记" tabindex="0" role="button"><i class="fas fa-file-import"></i></button>
@@ -167,7 +169,7 @@
     </div>
     
     <!-- 加载脚本 -->
-    <script src="app.js"></script>
+    <script type="module" src="js/main.js" defer></script>
     <script>
       // 注册 Service Worker
       if ('serviceWorker' in navigator) {

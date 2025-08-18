@@ -1,8 +1,7 @@
-const CACHE_NAME = 'note-app-cache-v13'; // 更新版本号 - 存储空间轻量化修复
+const CACHE_NAME = 'note-app-cache-v14'; // 更新版本号 - 移除app.js缓存
 const urlsToCache = [
   'index.html',
   'style.css',
-  'app.js',
   'manifest.json',
   'icon-192.png',
   'icon-256.png',
@@ -17,7 +16,21 @@ const urlsToCache = [
   'https://cdn.jsdelivr.net/npm/codemirror@5.65.16/lib/codemirror.min.js',
   'https://cdn.jsdelivr.net/npm/codemirror@5.65.16/mode/markdown/markdown.min.js',
   'https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js',
-  'https://cdn.jsdelivr.net/npm/turndown@7.1.2/dist/turndown.min.js'
+  'https://cdn.jsdelivr.net/npm/turndown@7.1.2/dist/turndown.min.js',
+  'js/main.js',
+  'js/dom.js',
+  'js/state.js',
+  'js/ui.js',
+  'js/note.js',
+  'js/version.js',
+  'js/events.js',
+  'js/utils.js',
+  'js/storage.js',
+  'js/storage-manager.js',
+  'js/cloud-sync.js',
+  'js/import-export.js',
+  'js/update-manager.js',
+  'js/data-migration-manager.js'
 ];
 
 // 安装时预缓存核心资源
