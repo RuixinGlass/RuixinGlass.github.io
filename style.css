@@ -356,12 +356,10 @@ pre, code {
 .note-item-content.has-session::before {
   content: '●';
   position: absolute;
-  left: -15px;
-  top: 50%;
-  transform: translateY(-50%);
-  color: #ff6b6b;
-  font-size: 12px;
-  animation: pulse 2s infinite;
+  left: -20px;
+  top: -8.8%;
+  color: #f0768b;
+  font-size: 20px;
 }
 /* ========== 主内容区 ========== */
 .main-content-wrapper {
