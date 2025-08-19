@@ -28,10 +28,27 @@ export async function loadFromLocalStorage() {
         // 尝试从 IndexedDB 加载数据
         const data = await storage.loadData();
         const notesData = getNotesData();
-        notesData.currentNoteId = data.currentNoteId;
-        notesData.notes = data.notes;
+        
+        // ✅ 【修复】只在首次加载时设置数据，避免覆盖用户当前状态
+        if (!notesData.notes || Object.keys(notesData.notes).length === 0) {
+            // 首次加载，设置完整数据
+            notesData.currentNoteId = data.currentNoteId;
+            notesData.notes = data.notes;
+            console.log('从 IndexedDB 首次加载数据成功');
+        } else {
+            // 非首次加载，只更新笔记数据，保持当前笔记ID
+            const currentNoteId = notesData.currentNoteId;
+            notesData.notes = data.notes;
+            
+            // 如果当前笔记ID在更新后的数据中不存在，则重置为null
+            if (currentNoteId && !data.notes[currentNoteId]) {
+                notesData.currentNoteId = null;
+                console.log('当前笔记ID在更新数据中不存在，已重置');
+            }
+            console.log('从 IndexedDB 更新笔记数据成功，保持当前笔记ID:', currentNoteId);
+        }
+        
         setNotesData(notesData);
-        console.log('从 IndexedDB 加载数据成功');
         
     } catch (error) {
         console.error('数据加载失败:', error);
