@@ -121,7 +121,7 @@ self.addEventListener('message', function(event) {
 async function checkForUpdate() {
   try {
     // 检查多个关键文件是否有更新
-    const filesToCheck = ['/index.html', '/app.js', '/style.css'];
+    const filesToCheck = ['/index.html', '/style.css'];
     let hasUpdate = false;
     
     for (const file of filesToCheck) {
