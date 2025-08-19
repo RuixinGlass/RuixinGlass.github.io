@@ -312,7 +312,7 @@ export function setupDOMEventListeners() {
                             hideVersions();
                         }
 
-                        const nextNoteId = deleteNote(noteIdToDelete);
+                        const nextNoteId = await deleteNote(noteIdToDelete);
                         
                         if (nextNoteId) {
                             // 如果还有其他笔记，切换到下一篇

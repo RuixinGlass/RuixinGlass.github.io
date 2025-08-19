@@ -106,9 +106,7 @@ export async function restoreVersion(versionIndex) {
         
         // 保存到本地存储
         const storage = getStorage();
-        storage.saveData(notesData).catch(error => {
-            console.error('恢复版本后保存失败:', error);
-        });
+        await storage.saveData(notesData);
 
         // 根据当前模式更新内容
         const cmEditor = getCmEditor();

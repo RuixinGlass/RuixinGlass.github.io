@@ -145,8 +145,9 @@ export function createNote() {
 /**
  * 删除笔记
  * @param {string} noteId - 笔记ID
+ * @returns {Promise<string|null>} 返回新的当前笔记ID，如果没有笔记则返回null
  */
-export function deleteNote(noteId) {
+export async function deleteNote(noteId) {
     const notesData = getNotesData();
     if (!notesData.notes[noteId]) return null;
 
@@ -160,13 +161,13 @@ export function deleteNote(noteId) {
         const newCurrentNoteId = remainingIds.length > 0 ? remainingIds[remainingIds.length - 1] : null;
         setCurrentNoteId(newCurrentNoteId);
         setNotesData(notesData);
-        saveToLocalStorage();
+        await saveToLocalStorage();
         return newCurrentNoteId;
     }
 
     // 如果删除的不是当前笔记，当前笔记ID不变
     setNotesData(notesData);
-    saveToLocalStorage();
+    await saveToLocalStorage();
     return currentNoteId; 
 }
 
@@ -251,8 +252,9 @@ export async function switchNote(noteId, forceEditMode = false) {
         console.log('📱 移动端检测到侧边栏展开，已自动收起');
     }
     
-    // ✅ 【修复】在所有操作的最后，触发一次保存，将包括 currentNoteId 在内的所有状态持久化
-    saveToLocalStorage();
+    // ✅ 【修复】使用 await 确保保存操作在函数逻辑上完成
+    // 这能让代码流程更清晰，虽然无法阻止浏览器中断，但是是更规范的写法
+    await saveToLocalStorage();
     
     return true;
 }
