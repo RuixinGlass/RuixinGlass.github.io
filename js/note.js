@@ -173,8 +173,9 @@ export function deleteNote(noteId) {
 /**
  * 切换笔记
  * @param {string} noteId - 笔记ID
+ * @param {boolean} forceEditMode - 是否强制进入编辑模式（可选）
  */
-export async function switchNote(noteId) {
+export async function switchNote(noteId, forceEditMode = false) {
     // ✅ 【优化】在函数开头调用场景切换，确保离开欢迎页
     // 触发场景切换事件，让UI模块响应
     document.dispatchEvent(new CustomEvent('sceneChanged', { detail: { scene: 'note' } }));
@@ -213,11 +214,15 @@ export async function switchNote(noteId) {
         dom.noteEditorEl.value = note.content || ''; // 为编辑器预置内容
     }
 
-    // ✅ 【修复核心】决策逻辑：检查新笔记是否存在会话
+    // ✅ 【修复核心】决策逻辑：检查新笔记是否存在会话或强制编辑模式
     const sessionToRestore = getSessionState(noteId);
-    if (sessionToRestore) {
-        console.log(`🔄 发现笔记 ${noteId} 的编辑会话，正在恢复...`);
-        enterEditMode(true); // 恢复会话并进入编辑模式
+    if (sessionToRestore || forceEditMode) {
+        if (sessionToRestore) {
+            console.log(`🔄 发现笔记 ${noteId} 的编辑会话，正在恢复...`);
+        } else {
+            console.log(`📝 强制进入编辑模式: ${noteId}`);
+        }
+        enterEditMode(true); // 恢复会话或直接进入编辑模式
     } else {
         console.log(`👁️ 笔记 ${noteId} 无会话，默认进入预览模式。`);
         enterPreviewMode(); // 默认进入预览模式
@@ -368,13 +373,18 @@ export function enterEditMode(isRestoringSession = false) {
         // 关键：必须在设置完内容之后再调用 refresh，确保编辑器内部状态正确。
         editor.refresh();
         
+        // ✅ 【修复】强制重新渲染编辑器，解决内容不显示的问题
+        setTimeout(() => {
+            editor.refresh();
+            editor.focus();
+        }, 10);
+        
         // 保持 setTimeout(0) 结构，作为第二重保险，确保滚动在浏览器完成渲染之后发生。
         setTimeout(() => {
             if (dom.mainPanel) {
                 const scrollTop = getLastMainPanelScrollRatio();
                 dom.mainPanel.scrollTop = scrollTop;
             }
-            editor.focus();
         }, 0);
 
         console.log('进入编辑模式:', currentNoteId);

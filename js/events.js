@@ -43,8 +43,8 @@ export function setupDOMEventListeners() {
         dom.fullscreenWelcome.addEventListener('click', async () => {
             try {
                 const newNoteId = createNote();
-                await switchNote(newNoteId);
-                enterEditMode(); 
+                // ✅ 【优化】直接进入编辑模式，避免不必要的预览模式切换
+                await switchNote(newNoteId, true); // 传入 true 表示直接进入编辑模式
                 showToast('新笔记已创建，开始书写吧！', 'success');
             } catch (error) {
                 handleError(error, '创建第一篇笔记失败');
