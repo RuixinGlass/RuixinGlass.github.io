@@ -364,9 +364,6 @@ export function enterEditMode(isRestoringSession = false) {
         // 触发编辑模式事件
         document.dispatchEvent(new CustomEvent('editModeEntered'));
         if(dom.contentArea) dom.contentArea.classList.add('editing-mode');
-        
-        // ✅ 【新增】触发字数统计更新（编辑模式切换时需要更新）
-        document.dispatchEvent(new CustomEvent('wordCountUpdate'));
 
         // 关键：必须在设置完内容之后再调用 refresh，确保编辑器内部状态正确。
         editor.refresh();
@@ -435,9 +432,6 @@ export function enterPreviewMode() {
     document.dispatchEvent(new CustomEvent('previewContentUpdate', { 
         detail: { content: note.content || '' } 
     }));
-    
-    // ✅ 【新增】触发字数统计更新（预览模式切换时需要更新）
-    document.dispatchEvent(new CustomEvent('wordCountUpdate'));
     
     // ✅【解决方案】使用 requestAnimationFrame 确保在浏览器绘制后执行滚动操作
     requestAnimationFrame(() => {

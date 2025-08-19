@@ -526,74 +526,230 @@ function setupMobileDrawerGestures() {
     const mask = dom.drawerMask;
     if (!sidebar || !mask) return;
 
-    let dragging = false, 
-        startX = 0, 
-        currentTranslate = 0, 
-        sidebarWidth = 0,
-        moved = false;
+    // 拖拽状态变量
+    let dragging = false;
+    let startX = 0;
+    let startY = 0;
+    let startTime = 0;
+    let lastTranslate = 0;
+    let wasCollapsed = false;
+    let moved = false;
+    let directionLocked = false;
+    let isDrawerDrag = false;
+    let lastMoveTime = 0;
+    let lastMoveX = 0;
+    
+    // 配置常量
+    const DRAG_THRESHOLD = 20;           // 开始拖拽的阈值
+    const DIRECTION_THRESHOLD = 15;      // 方向判定阈值 (px)
+    
+    // 分开设置的速度和距离阈值
+    const SWIPE_CONFIG = {
+        // 抽出侧栏（向右滑动）- 更容易触发
+        SHOW: {
+            VELOCITY_THRESHOLD: 0.2,    // 抽出速度阈值 (px/ms) - 较低，更容易抽出
+            DISTANCE_THRESHOLD: 30,     // 抽出距离阈值 (px) - 较低
+            POSITION_THRESHOLD: 0.3     // 位置阈值 (30%) - 较低，更容易保持打开
+        },
+        // 推回侧栏（向左滑动）- 避免误关闭
+        HIDE: {
+            VELOCITY_THRESHOLD: 0.2,   // 推回速度阈值 (px/ms) - 较高，避免误关闭
+            DISTANCE_THRESHOLD: 10,     // 推回距离阈值 (px) - 较高
+            POSITION_THRESHOLD: 0.4     // 位置阈值 (70%) - 较高，不容易意外关闭
+        }
+    };
 
+    // 获取侧栏宽度
+    function getSidebarWidth() {
+        return sidebar.offsetWidth || 320;
+    }
+
+    // 设置侧栏位移
+    function setSidebarTranslate(x) {
+        sidebar.style.transition = 'none';
+        sidebar.style.transform = `translateX(${x}px)`;
+    }
+
+    // 重置侧栏过渡效果
+    function resetSidebarTransition() {
+        sidebar.style.transition = '';
+        sidebar.style.transform = '';
+    }
+
+    // 计算滑动速度
+    function calculateVelocity(currentTime, currentX, lastTime, lastX) {
+        const timeDelta = currentTime - lastTime;
+        const distanceDelta = currentX - lastX;
+        return timeDelta > 0 ? Math.abs(distanceDelta) / timeDelta : 0;
+    }
+
+    // 根据最终位置和速度决定抽屉状态
+    function finalizeDrawerState(currentTranslate, deltaX, deltaTime) {
+        const sidebarWidth = getSidebarWidth();
+        const currentPercent = Math.abs(currentTranslate) / sidebarWidth;
+        
+        // 计算速度
+        const velocity = deltaTime > 0 ? Math.abs(deltaX) / deltaTime : 0;
+        
+        // 判断滑动方向并使用对应的阈值
+        if (deltaX > 0) {
+            // 向右滑动 - 抽出侧栏
+            const config = SWIPE_CONFIG.SHOW;
+            const isSwipeRight = deltaX > config.DISTANCE_THRESHOLD && velocity > config.VELOCITY_THRESHOLD;
+            
+            if (isSwipeRight) {
+                expandSidebar();
+                return;
+            }
+            
+            // 根据位置判断，使用抽出的位置阈值
+            if (currentPercent < config.POSITION_THRESHOLD) {
+                expandSidebar();
+            } else {
+                collapseSidebar();
+            }
+        } else {
+            // 向左滑动 - 推回侧栏
+            const config = SWIPE_CONFIG.HIDE;
+            const isSwipeLeft = deltaX < -config.DISTANCE_THRESHOLD && velocity > config.VELOCITY_THRESHOLD;
+            
+            if (isSwipeLeft) {
+                collapseSidebar();
+                return;
+            }
+            
+            // 根据位置判断，使用推回的位置阈值
+            if (currentPercent > config.POSITION_THRESHOLD) {
+                collapseSidebar();
+            } else {
+                expandSidebar();
+            }
+        }
+    }
+
+    // 触摸开始事件
     document.addEventListener('touchstart', (e) => {
-        if (!isMobile() || e.touches.length !== 1) return;
-        if (e.target.closest('pre, code, .tags-list, .MathJax_Display')) {
+        if (!isMobile()) return;
+        if (e.touches.length !== 1) return;
+        
+        const target = e.target;
+        if (
+            target.closest('pre') ||
+            target.closest('code') ||
+            target.closest('.tags-list') ||
+            target.closest('.MathJax_Display')
+        ) {
+            e._isContentScroll = true;
             return;
         }
+        
         dragging = true;
-        moved = false;
+        startTime = Date.now();
         startX = e.touches[0].clientX;
-        sidebarWidth = sidebar.offsetWidth;
-        const isCollapsed = sidebar.classList.contains('drawer-collapsed');
-        currentTranslate = isCollapsed ? -sidebarWidth : 0;
-        
-        // 拖动开始时，立即移除过渡动画，以实现流畅的"跟手"效果
-        sidebar.style.transition = 'none';
+        startY = e.touches[0].clientY;
+        moved = false;
+        directionLocked = false;
+        isDrawerDrag = false;
+        wasCollapsed = sidebar.classList.contains('drawer-collapsed');
+        lastTranslate = wasCollapsed ? -getSidebarWidth() : 0;
+        sidebar.style.willChange = 'transform';
+        lastMoveTime = startTime;
+        lastMoveX = startX;
     }, { passive: true });
 
+    // 触摸移动事件
     document.addEventListener('touchmove', (e) => {
+        if (e._isContentScroll) return;
         if (!dragging || !isMobile()) return;
-        moved = true;
-        const moveX = e.touches[0].clientX;
-        const deltaX = moveX - startX;
-        let newTranslate = currentTranslate + deltaX;
-        newTranslate = Math.max(-sidebarWidth, Math.min(0, newTranslate));
         
-        // 实时更新 transform 样式，实现"悬停"
-        sidebar.style.transform = `translateX(${newTranslate}px)`;
-        mask.style.opacity = (1 + newTranslate / sidebarWidth).toString();
-    }, { passive: true });
+        const moveX = e.touches[0].clientX;
+        const moveY = e.touches[0].clientY;
+        const deltaX = moveX - startX;
+        const deltaY = moveY - startY;
 
+        // 方向锁定判断 - 只有水平滑动距离大于垂直滑动距离时才认为是抽屉拖拽
+        if (!directionLocked) {
+            if (Math.abs(deltaX) > DIRECTION_THRESHOLD || Math.abs(deltaY) > DIRECTION_THRESHOLD) {
+                directionLocked = true;
+                // 关键逻辑：只有当水平距离明显大于垂直距离时才判定为抽屉拖拽
+                isDrawerDrag = Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > DIRECTION_THRESHOLD;
+            }
+        }
+        
+        // 如果不是水平滑动，让页面正常滚动
+        if (!isDrawerDrag) return;
+
+        // 达到拖拽阈值后开始移动
+        if (!moved && Math.abs(deltaX) > DRAG_THRESHOLD) {
+            moved = true;
+        }
+        
+        if (moved) {
+            let targetTranslate = lastTranslate + deltaX;
+            const sidebarWidth = getSidebarWidth();
+            // 限制移动范围
+            targetTranslate = Math.min(0, Math.max(-sidebarWidth, targetTranslate));
+            setSidebarTranslate(targetTranslate);
+            
+            // 更新遮罩层透明度
+            const percent = 1 + (targetTranslate / sidebarWidth); // 0~1
+            mask.style.opacity = Math.max(0, Math.min(1, percent)).toFixed(3);
+            
+            // 阻止默认行为
+            e.preventDefault();
+        }
+    }, { passive: false });
+
+    // 触摸结束事件
     document.addEventListener('touchend', (e) => {
         if (!dragging || !isMobile()) return;
+        
         dragging = false;
-
-        if (!moved) {
-            sidebar.style.transition = ''; // 确保简单点击也能恢复动画
-            return;
-        }
-
-        const endX = e.changedTouches[0].clientX;
-        const deltaX = endX - startX;
+        sidebar.style.willChange = '';
         
-        // 【关键修复：调整执行顺序】
-        // 1. 首先，根据滑动距离，决定并应用最终的 class 状态
-        if (Math.abs(deltaX) > sidebarWidth / 3 || Math.abs(deltaX) > 30) {
-            if (deltaX > 0) { // 向右拖，应该展开
-                expandSidebar();
-            } else { // 向左拖，应该收起
-                collapseSidebar();
-            }
-        } else { // 拖动距离不足，弹回原位
-            if (currentTranslate === 0) { // 原本是展开的
-                expandSidebar();
-            } else { // 原本是收起的
-                collapseSidebar();
-            }
+        if (moved && isDrawerDrag) {
+            const endX = e.changedTouches[0].clientX;
+            const endTime = Date.now();
+            const deltaX = endX - startX;
+            const deltaTime = endTime - startTime;
+            
+            // 获取当前位置
+            const currentTransform = sidebar.style.transform;
+            const currentTranslate = currentTransform 
+                ? parseFloat((currentTransform.match(/translateX\(([^)]+)px\)/) || [])[1] || 0)
+                : (wasCollapsed ? -getSidebarWidth() : 0);
+            
+            // 使用改进的判断逻辑
+            finalizeDrawerState(currentTranslate, deltaX, deltaTime);
+        } else {
+            // 没有移动，恢复原状态
+            resetSidebarTransition();
         }
-        
-        // 2. 然后，恢复 CSS 动画并将控制权交还给 class
-        sidebar.style.transition = ''; 
-        sidebar.style.transform = '';
-        mask.style.opacity = '';
     }, { passive: true });
+
+    // 处理触摸取消事件
+    document.addEventListener('touchcancel', (e) => {
+        if (!dragging || !isMobile()) return;
+        
+        dragging = false;
+        sidebar.style.willChange = '';
+        resetSidebarTransition();
+    }, { passive: true });
+
+    // 点击遮罩层收回侧栏
+    mask.addEventListener('click', (e) => {
+        if (!isMobile()) return;
+        collapseSidebar();
+    });
+    
+    // 防止遮罩层的触摸事件与拖拽冲突
+    mask.addEventListener('touchstart', (e) => {
+        if (!isMobile()) return;
+        // 如果正在拖拽，不处理点击
+        if (dragging) {
+            e.preventDefault();
+        }
+    }, { passive: false });
 }
 
 /**
@@ -658,9 +814,13 @@ export function setupCustomEventListeners() {
     });
     
     // 监听场景切换事件
-    document.addEventListener('sceneChanged', (event) => {
+    document.addEventListener('sceneChanged', async (event) => {
         const { scene } = event.detail;
         console.log('Events: 场景切换:', scene);
+        
+        // ✅ 【修复】调用UI函数来切换场景
+        const { switchScene } = await import('./ui.js');
+        switchScene(scene);
     });
     
     // 监听笔记切换完成事件
@@ -668,9 +828,6 @@ export function setupCustomEventListeners() {
         const { noteId } = event.detail;
         const { renderNotesList } = await import('./ui.js');
         renderNotesList();
-        
-        // ✅ 【新增】笔记切换完成后更新字数统计
-        document.dispatchEvent(new CustomEvent('wordCountUpdate'));
         
         console.log('Events: 笔记切换完成');
     });
