@@ -538,8 +538,12 @@ export function collapseSidebar() {
     
     if (!sidebar || !mask) return;
     
-    sidebar.classList.remove('drawer-open');
+    // 移除 is-dragging 和 drawer-open，添加 drawer-collapsed
+    sidebar.classList.remove('is-dragging', 'drawer-open');
     sidebar.classList.add('drawer-collapsed');
+    
+    // 清理内联样式，将控制权完全交给CSS
+    sidebar.style.transform = '';
     
     mask.style.opacity = '0';
     mask.style.pointerEvents = 'none';
@@ -559,9 +563,13 @@ export function expandSidebar() {
     
     if (!sidebar || !mask) return;
     
-    sidebar.classList.remove('drawer-collapsed');
+    // 移除 is-dragging 和 drawer-collapsed，添加 drawer-open
+    sidebar.classList.remove('is-dragging', 'drawer-collapsed');
     sidebar.classList.add('drawer-open');
-    
+
+    // 清理内联样式，将控制权完全交给CSS
+    sidebar.style.transform = '';
+
     mask.style.opacity = '1';
     mask.style.pointerEvents = 'auto';
     
