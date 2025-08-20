@@ -161,6 +161,10 @@ export async function performCloudSyncPull(token, gistId, statusCallback) {
         
         await storage.saveData(data);
         
+        // 同时创建备份并清理旧备份
+        await storage.backupData(data);
+        await storage.cleanupOldBackups();
+        
         // 清理可能存在的localStorage旧数据
         localStorage.removeItem('notesData');
         

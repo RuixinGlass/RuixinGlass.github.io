@@ -156,6 +156,8 @@ class IndexedDBStorage {
      */
     async backupData(data) {
         const backupId = `backup_${Date.now()}`;
+        console.log(`💾 创建备份：${backupId}`);
+        
         return this._executeTransaction('readwrite', (store, resolve, reject) => {
             const request = store.put({
                 id: backupId,
@@ -163,8 +165,14 @@ class IndexedDBStorage {
                 timestamp: Date.now(),
                 type: 'backup'
             });
-            request.onsuccess = () => resolve(backupId);
-            request.onerror = () => reject(request.error);
+            request.onsuccess = () => {
+                console.log(`✅ 备份创建成功：${backupId}`);
+                resolve(backupId);
+            };
+            request.onerror = () => {
+                console.error('❌ 备份创建失败：', request.error);
+                reject(request.error);
+            };
         });
     }
 
@@ -186,13 +194,16 @@ class IndexedDBStorage {
     /**
      * 清理旧备份
      */
-    async cleanupOldBackups(keepCount = 5) {
+    async cleanupOldBackups(keepCount = 3) {
         const backups = await this.getAllBackups();
         if (backups.length <= keepCount) {
+            console.log(`📦 备份清理：当前备份数量 ${backups.length}，无需清理`);
             return;
         }
 
         const toDelete = backups.slice(keepCount);
+        console.log(`🗑️ 备份清理：删除 ${toDelete.length} 个旧备份，保留最新的 ${keepCount} 个`);
+        
         return this._executeTransaction('readwrite', (store, resolve, reject) => {
             let completed = 0;
             let hasError = false;
@@ -202,11 +213,13 @@ class IndexedDBStorage {
                 request.onsuccess = () => {
                     completed++;
                     if (completed === toDelete.length && !hasError) {
+                        console.log(`✅ 备份清理完成：成功删除 ${completed} 个旧备份`);
                         resolve();
                     }
                 };
                 request.onerror = () => {
                     hasError = true;
+                    console.error('❌ 备份清理失败：删除备份时出错', request.error);
                     reject(request.error);
                 };
             });

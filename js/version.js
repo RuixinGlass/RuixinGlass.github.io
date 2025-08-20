@@ -59,6 +59,10 @@ export async function saveVersion() {
         // 保存到本地存储
         const storage = getStorage();
         await storage.saveData(notesData);
+        
+        // 同时创建备份并清理旧备份
+        await storage.backupData(notesData);
+        await storage.cleanupOldBackups();
 
         cmEditor.markClean(); // 标记为"干净"状态
 
@@ -107,6 +111,10 @@ export async function restoreVersion(versionIndex) {
         // 保存到本地存储
         const storage = getStorage();
         await storage.saveData(notesData);
+        
+        // 同时创建备份并清理旧备份
+        await storage.backupData(notesData);
+        await storage.cleanupOldBackups();
 
         // 根据当前模式更新内容
         const cmEditor = getCmEditor();
@@ -173,6 +181,10 @@ export async function deleteVersion(versionIndex) {
         // 保存到本地存储
         const storage = getStorage();
         await storage.saveData(notesData);
+        
+        // 同时创建备份并清理旧备份
+        await storage.backupData(notesData);
+        await storage.cleanupOldBackups();
 
         // 重新渲染版本历史
         const { showVersions } = await import('./ui.js');

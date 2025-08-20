@@ -41,6 +41,10 @@ export async function importFromFiles(files) {
     if (storage) {
         try {
             await storage.saveData(notesData);
+            
+            // 同时创建备份并清理旧备份
+            await storage.backupData(notesData);
+            await storage.cleanupOldBackups();
         } catch (error) {
             console.error('导入文件后保存失败:', error);
             showToast('文件导入成功，但保存至本地时出错', 'error');

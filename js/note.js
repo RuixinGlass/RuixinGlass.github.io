@@ -35,11 +35,29 @@ export async function loadFromLocalStorage() {
         
     } catch (error) {
         console.error('数据加载失败:', error);
-        // 使用默认空数据，不抛出错误
+        
+        // 尝试自动数据恢复
+        try {
+            const { recoverData } = await import('./data-migration-manager.js');
+            const recoverySuccess = await recoverData();
+            
+            if (recoverySuccess) {
+                console.log('✅ 自动数据恢复成功');
+                showToast('数据已从备份自动恢复', 'success');
+                return; // 恢复成功，重新加载数据
+            }
+        } catch (recoveryError) {
+            console.error('自动数据恢复失败:', recoveryError);
+        }
+        
+        // 恢复失败，使用默认空数据
         const notesData = getNotesData();
         notesData.currentNoteId = null;
         notesData.notes = {};
         setNotesData(notesData);
+        
+        // 提示用户手动恢复
+        console.warn('建议使用 Ctrl+Shift+R 进行手动数据恢复');
     }
 }
 
@@ -51,6 +69,11 @@ export async function saveToLocalStorage() {
         const storage = getStorage();
         const notesData = getNotesData();
         await storage.saveData(notesData);
+        
+        // 同时创建备份并清理旧备份
+        await storage.backupData(notesData);
+        await storage.cleanupOldBackups(); // 使用默认值保留最新的3个备份
+        
         console.log('IndexedDB 数据保存成功，笔记数量:', Object.keys(notesData.notes).length);
     } catch (error) {
         console.error('保存数据到 IndexedDB 失败:', error);

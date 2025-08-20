@@ -494,6 +494,51 @@ function setupAppKeyboardShortcuts() {
                 handleError(error, '快捷键新建笔记失败');
             }
         }
+        
+        // 数据恢复与开发者工具快捷键
+        // Ctrl+Shift+R 紧急恢复数据
+        if (e.ctrlKey && e.shiftKey && e.key === 'R') {
+            e.preventDefault();
+            try {
+                const { emergencyDataRecovery } = await import('./data-migration-manager.js');
+                await emergencyDataRecovery();
+            } catch (error) {
+                handleError(error, '紧急数据恢复失败');
+            }
+        }
+        
+        // Ctrl+Shift+D 查看存储状态
+        if (e.ctrlKey && e.shiftKey && e.key === 'D') {
+            e.preventDefault();
+            try {
+                const { showStorageStatus } = await import('./data-migration-manager.js');
+                await showStorageStatus();
+            } catch (error) {
+                handleError(error, '显示存储状态失败');
+            }
+        }
+        
+        // Ctrl+Shift+E 导出所有存储数据
+        if (e.ctrlKey && e.shiftKey && e.key === 'E') {
+            e.preventDefault();
+            try {
+                const { exportAllStorageData } = await import('./data-migration-manager.js');
+                await exportAllStorageData();
+            } catch (error) {
+                handleError(error, '导出存储数据失败');
+            }
+        }
+        
+        // Ctrl+Shift+H 显示数据健康报告
+        if (e.ctrlKey && e.shiftKey && e.key === 'H') {
+            e.preventDefault();
+            try {
+                const { showDataHealthReport } = await import('./data-migration-manager.js');
+                await showDataHealthReport();
+            } catch (error) {
+                handleError(error, '显示健康报告失败');
+            }
+        }
     });
 }
 
