@@ -188,6 +188,11 @@ export async function switchNote(noteId, forceEditMode = false) {
         console.warn('尝试切换到不存在的笔记:', noteId);
         return false;
     }
+    
+    // --- 核心修复：在这里立即更新并保存 currentNoteId ---
+    setCurrentNoteId(noteId);
+    await saveToLocalStorage(); // 确保新的 currentNoteId 被立即持久化
+    // ----------------------------------------------------
 
     // ✅ 【修复核心】在切换前，无条件销毁任何可能存在的旧编辑器实例
     const cmEditor = getCmEditor();
@@ -203,8 +208,6 @@ export async function switchNote(noteId, forceEditMode = false) {
     }
 
     // --- 现在我们处于一个干净的状态，开始加载新笔记 ---
-
-    setCurrentNoteId(noteId);
     const note = notesData.notes[noteId];
 
     // 更新基础UI元素
@@ -251,10 +254,6 @@ export async function switchNote(noteId, forceEditMode = false) {
         
         console.log('📱 移动端检测到侧边栏展开，已自动收起');
     }
-    
-    // ✅ 【修复】使用 await 确保保存操作在函数逻辑上完成
-    // 这能让代码流程更清晰，虽然无法阻止浏览器中断，但是是更规范的写法
-    await saveToLocalStorage();
     
     return true;
 }
