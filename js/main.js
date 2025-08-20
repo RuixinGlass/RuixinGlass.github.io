@@ -74,6 +74,9 @@ async function initializeApp() {
         
         // 9. 设置DOM事件监听器
         setupDOMEventListeners();
+        
+        // 10. 启动定期清理任务
+        startPeriodicCleanup();
 
         console.log('✅ 应用加载完成！');
         showToast('应用加载完成！', 'success');
@@ -155,6 +158,26 @@ function handleInitialBusinessLogic() {
     }
 }
 
+
+/**
+ * 启动定期清理任务
+ */
+function startPeriodicCleanup() {
+    console.log('🧹 启动定期清理任务...');
+    
+    // 定期清理过期会话状态（每小时执行一次）
+    setInterval(async () => {
+        try {
+            const { cleanupExpiredSessionStates } = await import('./state.js');
+            cleanupExpiredSessionStates();
+            console.log('✅ 定期清理过期会话状态完成');
+        } catch (error) {
+            console.error('❌ 清理过期会话状态失败:', error);
+        }
+    }, 60 * 60 * 1000); // 每小时执行一次
+    
+    console.log('✅ 定期清理任务已启动');
+}
 
 // 监听DOM加载完成事件，启动应用
 document.addEventListener('DOMContentLoaded', initializeApp);

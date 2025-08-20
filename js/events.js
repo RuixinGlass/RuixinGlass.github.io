@@ -221,9 +221,9 @@ export function setupDOMEventListeners() {
 
     // 笔记标题输入框
     if (dom.noteTitleEl) {
-        dom.noteTitleEl.addEventListener('input', () => {
+        dom.noteTitleEl.addEventListener('input', async () => {
             try {
-                saveCurrentNote();
+                await saveCurrentNote();
                 // ✅ 【新增】标题修改后需要更新笔记列表显示
                 renderNotesList();
             } catch (error) {
@@ -234,9 +234,9 @@ export function setupDOMEventListeners() {
 
     // 笔记内容输入框
     if (dom.noteEditorEl) {
-        dom.noteEditorEl.addEventListener('input', () => {
+        dom.noteEditorEl.addEventListener('input', async () => {
             try {
-                saveCurrentNote();
+                await saveCurrentNote();
             } catch (error) {
                 handleError(error, '保存内容失败');
             }
@@ -743,7 +743,7 @@ export function setupCustomEventListeners() {
     document.addEventListener('loadNote', async (event) => {
         const { noteId } = event.detail;
         const { switchNote } = await import('./note.js');
-        switchNote(noteId);
+        await switchNote(noteId);
     });
     
     // 监听场景切换事件

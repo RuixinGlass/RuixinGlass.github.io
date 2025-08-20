@@ -15,7 +15,7 @@ import {
     getLastMainPanelScrollRatio, setLastMainPanelScrollRatio
 } from './state.js';
 import { generateId, handleError, showToast, debounce, isMobile } from './utils.js';
-import { getStorage, initializeStorage } from './storage-manager.js';
+import { initializeStorage, saveNotesData, loadNotesData } from './storage-manager.js';
 
 /**
  * 从本地存储加载数据
@@ -23,10 +23,10 @@ import { getStorage, initializeStorage } from './storage-manager.js';
 export async function loadFromLocalStorage() {
     try {
         // 初始化存储系统
-        const storage = await initializeStorage();
+        await initializeStorage();
         
         // 尝试从 IndexedDB 加载数据
-        const data = await storage.loadData();
+        const data = await loadNotesData();
         const notesData = getNotesData();
         notesData.currentNoteId = data.currentNoteId;
         notesData.notes = data.notes;
@@ -66,14 +66,8 @@ export async function loadFromLocalStorage() {
  */
 export async function saveToLocalStorage() {
     try {
-        const storage = getStorage();
         const notesData = getNotesData();
-        await storage.saveData(notesData);
-        
-        // 同时创建备份并清理旧备份
-        await storage.backupData(notesData);
-        await storage.cleanupOldBackups(); // 使用默认值保留最新的3个备份
-        
+        await saveNotesData(notesData);
         console.log('IndexedDB 数据保存成功，笔记数量:', Object.keys(notesData.notes).length);
     } catch (error) {
         console.error('保存数据到 IndexedDB 失败:', error);
@@ -284,7 +278,7 @@ export async function switchNote(noteId, forceEditMode = false) {
 /**
  * 保存当前笔记
  */
-export function saveCurrentNote() {
+export async function saveCurrentNote() {
     const currentNoteId = getCurrentNoteId();
     if (!currentNoteId) {
         console.warn('没有当前笔记，无法保存');
@@ -319,10 +313,12 @@ export function saveCurrentNote() {
     setNotesData(notesData);
     
     // 保存到本地存储
-    saveToLocalStorage().catch(error => {
+    try {
+        await saveToLocalStorage();
+    } catch (error) {
         console.error('保存笔记失败:', error);
         handleError(error, '保存笔记失败');
-    });
+    }
     
     console.log('笔记保存成功:', currentNoteId);
     return true;
@@ -357,8 +353,12 @@ export function enterEditMode(isRestoringSession = false) {
             lineWrapping: true,
             autofocus: true,
             extraKeys: {
-                'Ctrl-S': function(cm) {
-                    saveCurrentNote();
+                'Ctrl-S': async function(cm) {
+                    try {
+                        await saveCurrentNote();
+                    } catch (error) {
+                        console.error('Ctrl+S 保存失败:', error);
+                    }
                 }
             },
             
@@ -387,9 +387,13 @@ export function enterEditMode(isRestoringSession = false) {
         });
         
         // ✅ 【新增】为新创建的编辑器实例绑定防抖保存
-        const debouncedSaveHandler = debounce(() => {
+        const debouncedSaveHandler = debounce(async () => {
             console.log('...自动保存(防抖)...');
-            saveCurrentNote();
+            try {
+                await saveCurrentNote();
+            } catch (error) {
+                console.error('防抖保存失败:', error);
+            }
         }, 2000);
         editor.on('change', debouncedSaveHandler);
         
@@ -500,20 +504,28 @@ export function setupAutoSave() {
     console.log('🛡️ 启动自动保存机制...');
 
     // 1. 定时保存
-    setInterval(() => {
+    setInterval(async () => {
         const cmEditor = getCmEditor();
         if (cmEditor && !cmEditor.isClean()) {
             console.log('...自动保存(定时)...');
-            saveCurrentNote();
+            try {
+                await saveCurrentNote();
+            } catch (error) {
+                console.error('自动保存失败:', error);
+            }
         }
     }, 30000); // 30秒
 
     // 2. 页面关闭前保存
-    window.addEventListener('beforeunload', () => {
+    window.addEventListener('beforeunload', async () => {
         const cmEditor = getCmEditor();
         if (cmEditor && !cmEditor.isClean()) {
             console.log('...页面关闭前保存...');
-            saveCurrentNote();
+            try {
+                await saveCurrentNote();
+            } catch (error) {
+                console.error('页面关闭前保存失败:', error);
+            }
         }
     });
 }

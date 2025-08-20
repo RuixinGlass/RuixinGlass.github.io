@@ -4,14 +4,13 @@
  */
 
 import { getNotesData, setNotesData } from './state.js';
-import { getStorage } from './storage-manager.js';
+import { saveNotesData, importData } from './storage-manager.js';
 import { generateId, showToast } from './utils.js';
 
 /**
  * 从文件列表导入笔记
  */
 export async function importFromFiles(files) {
-    const storage = getStorage();
     const notesData = getNotesData();
     
     for (const file of files) {
@@ -38,17 +37,11 @@ export async function importFromFiles(files) {
     
     setNotesData(notesData);
     
-    if (storage) {
-        try {
-            await storage.saveData(notesData);
-            
-            // 同时创建备份并清理旧备份
-            await storage.backupData(notesData);
-            await storage.cleanupOldBackups();
-        } catch (error) {
-            console.error('导入文件后保存失败:', error);
-            showToast('文件导入成功，但保存至本地时出错', 'error');
-        }
+    try {
+        await saveNotesData(notesData);
+    } catch (error) {
+        console.error('导入文件后保存失败:', error);
+        showToast('文件导入成功，但保存至本地时出错', 'error');
     }
 }
 

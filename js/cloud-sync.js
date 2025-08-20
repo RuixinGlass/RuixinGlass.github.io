@@ -7,7 +7,7 @@
  * @version 1.0.0
  */
 
-import { getStorage } from './storage-manager.js';
+import { saveNotesData, loadNotesData } from './storage-manager.js';
 import { handleError, showToast } from './utils.js';
 
 /**
@@ -113,12 +113,7 @@ export async function performCloudSyncUpload(token, gistId, statusCallback) {
         statusCallback('正在读取本地数据...');
         
         // 从IndexedDB获取数据
-        const storage = getStorage();
-        if (!storage) {
-            throw new Error('核心存储模块 (IndexedDB) 不可用，无法读取本地数据！');
-        }
-        
-        const dataToPush = await storage.loadData();
+        const dataToPush = await loadNotesData();
         
         statusCallback('正在上传到云端...');
         
@@ -154,16 +149,7 @@ export async function performCloudSyncPull(token, gistId, statusCallback) {
         statusCallback('正在保存到本地...');
         
         // 保存到IndexedDB
-        const storage = getStorage();
-        if (!storage) {
-            throw new Error('核心存储模块 (IndexedDB) 不可用，无法保存云端数据！');
-        }
-        
-        await storage.saveData(data);
-        
-        // 同时创建备份并清理旧备份
-        await storage.backupData(data);
-        await storage.cleanupOldBackups();
+        await saveNotesData(data);
         
         // 清理可能存在的localStorage旧数据
         localStorage.removeItem('notesData');

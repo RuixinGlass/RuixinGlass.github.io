@@ -4,7 +4,7 @@
  */
 
 import { showToast, handleError } from './utils.js';
-import { getStorage } from './storage-manager.js';
+import { getStorage, getAllBackups, restoreFromBackup, exportAllData, loadNotesData, getStorageInfo, saveNotesData } from './storage-manager.js';
 import { getNotesData, setNotesData } from './state.js';
 
 /**
@@ -94,26 +94,21 @@ export async function showStorageStatus() {
     // 检查 IndexedDB
     status += '🗄️ IndexedDB 状态:\n';
     try {
-        const storage = getStorage();
-        if (storage) {
-            status += '- 状态: ✅ 已初始化\n';
-            try {
-                const info = await storage.getStorageInfo();
-                status += `- 总项目数: ${info.totalItems}\n`;
-                status += `- 备份数量: ${info.backupCount}\n`;
-                status += `- 主数据大小: ${(info.mainDataSize / 1024).toFixed(2)} KB\n`;
-                status += `- 最后备份: ${info.lastBackup ? new Date(info.lastBackup).toLocaleString() : '无'}\n`;
-                
-                // 显示当前内存中的数据状态
-                const notesData = getNotesData();
-                const noteCount = Object.keys(notesData.notes || {}).length;
-                status += `- 内存中笔记数量: ${noteCount}\n`;
-                status += `- 当前笔记ID: ${notesData.currentNoteId || '无'}\n`;
-            } catch (error) {
-                status += `- 错误: ${error.message}\n`;
-            }
-        } else {
-            status += '- 状态: ❌ 未初始化\n';
+        status += '- 状态: ✅ 已初始化\n';
+        try {
+            const info = await getStorageInfo();
+            status += `- 总项目数: ${info.totalItems}\n`;
+            status += `- 备份数量: ${info.backupCount}\n`;
+            status += `- 主数据大小: ${(info.mainDataSize / 1024).toFixed(2)} KB\n`;
+            status += `- 最后备份: ${info.lastBackup ? new Date(info.lastBackup).toLocaleString() : '无'}\n`;
+            
+            // 显示当前内存中的数据状态
+            const notesData = getNotesData();
+            const noteCount = Object.keys(notesData.notes || {}).length;
+            status += `- 内存中笔记数量: ${noteCount}\n`;
+            status += `- 当前笔记ID: ${notesData.currentNoteId || '无'}\n`;
+        } catch (error) {
+            status += `- 错误: ${error.message}\n`;
         }
     } catch (error) {
         status += `- 错误: ${error.message}\n`;
@@ -172,13 +167,8 @@ export async function exportAllStorageData() {
         
         // 导出 IndexedDB 数据
         try {
-            const storage = getStorage();
-            if (storage) {
-                const data = await storage.exportData();
-                exportData.indexedDB = data;
-            } else {
-                exportData.indexedDB = { error: '存储模块不可用' };
-            }
+            const data = await exportAllData();
+            exportData.indexedDB = data;
         } catch (error) {
             exportData.indexedDB = { error: error.message };
         }
@@ -210,13 +200,9 @@ function downloadStorageData(data) {
  */
 export async function recoverData(backupId = null) {
     try {
-        const storage = getStorage();
-        if (!storage) {
-            throw new Error('存储模块不可用');
-        }
 
         // 获取所有备份
-        const backups = await storage.getAllBackups();
+        const backups = await getAllBackups();
         if (backups.length === 0) {
             throw new Error('没有可用的备份数据');
         }
@@ -235,7 +221,7 @@ export async function recoverData(backupId = null) {
 
         // 恢复数据
         const recoveredData = targetBackup.data;
-        await storage.saveData(recoveredData);
+        await saveNotesData(recoveredData);
         
         // 更新内存中的数据
         setNotesData(recoveredData);
@@ -264,17 +250,10 @@ export async function monitorDataHealth() {
     };
 
     try {
-        const storage = getStorage();
-        if (!storage) {
-            healthReport.overall = 'critical';
-            healthReport.issues.push('存储模块不可用');
-            healthReport.recommendations.push('检查浏览器IndexedDB支持');
-            return healthReport;
-        }
 
         // 检查主数据完整性
         try {
-            const mainData = await storage.loadData();
+            const mainData = await loadNotesData();
             if (!mainData || typeof mainData !== 'object') {
                 healthReport.issues.push('主数据结构异常');
                 healthReport.recommendations.push('尝试从备份恢复数据');
@@ -308,7 +287,7 @@ export async function monitorDataHealth() {
 
         // 检查备份数据
         try {
-            const backups = await storage.getAllBackups();
+            const backups = await getAllBackups();
             if (backups.length === 0) {
                 healthReport.issues.push('没有备份数据');
                 healthReport.recommendations.push('建议立即创建备份');
@@ -329,7 +308,7 @@ export async function monitorDataHealth() {
 
         // 检查存储空间
         try {
-            const storageInfo = await storage.getStorageInfo();
+            const storageInfo = await getStorageInfo();
             const totalSize = storageInfo.mainDataSize + (storageInfo.backupCount * 100); // 估算备份大小
             const sizeLimit = 50 * 1024 * 1024; // 50MB 限制
             

@@ -14,7 +14,7 @@ import {
     getCmEditor, setCmEditor
 } from './state.js';
 import { generateVersionHash, handleError, showToast, isMobile } from './utils.js';
-import { getStorage } from './storage-manager.js';
+import { saveNotesData } from './storage-manager.js';
 // 移除UI相关导入，通过事件通知UI更新
 
 /**
@@ -57,12 +57,7 @@ export async function saveVersion() {
         setNotesData(notesData);
         
         // 保存到本地存储
-        const storage = getStorage();
-        await storage.saveData(notesData);
-        
-        // 同时创建备份并清理旧备份
-        await storage.backupData(notesData);
-        await storage.cleanupOldBackups();
+        await saveNotesData(notesData);
 
         cmEditor.markClean(); // 标记为"干净"状态
 
@@ -109,12 +104,7 @@ export async function restoreVersion(versionIndex) {
         setNotesData(notesData);
         
         // 保存到本地存储
-        const storage = getStorage();
-        await storage.saveData(notesData);
-        
-        // 同时创建备份并清理旧备份
-        await storage.backupData(notesData);
-        await storage.cleanupOldBackups();
+        await saveNotesData(notesData);
 
         // 根据当前模式更新内容
         const cmEditor = getCmEditor();
@@ -179,12 +169,7 @@ export async function deleteVersion(versionIndex) {
         setNotesData(notesData);
         
         // 保存到本地存储
-        const storage = getStorage();
-        await storage.saveData(notesData);
-        
-        // 同时创建备份并清理旧备份
-        await storage.backupData(notesData);
-        await storage.cleanupOldBackups();
+        await saveNotesData(notesData);
 
         // 重新渲染版本历史
         const { showVersions } = await import('./ui.js');
