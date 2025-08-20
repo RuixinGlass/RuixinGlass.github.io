@@ -1,8 +1,7 @@
 /**
  * UI渲染器
  * 负责所有界面渲染和更新操作
- * 
- * @description 此模块负责所有UI渲染和更新操作
+ * * @description 此模块负责所有UI渲染和更新操作
  * @author 简·记项目组
  * @version 1.0.0
  */
@@ -90,6 +89,15 @@ export function renderNotesList() {
     });
     
     renderTagsList();
+
+    // 新增：滚动到激活的笔记
+    const activeNoteItem = dom.notesListEl.querySelector('li.active');
+    if (activeNoteItem) {
+        activeNoteItem.scrollIntoView({
+            behavior: 'smooth', // 使用'auto'可以立即定位，'smooth'则有平滑动画
+            block: 'nearest'
+        });
+    }
 }
 
 /**
@@ -143,7 +151,7 @@ function getAllTags() {
     }
     
     // 按出现频率降序
-    return Object.keys(tagCount).sort((a, b) => tagCount[b] - tagCount[a]);
+    return Object.keys(tagCount).sort((a, b) => tagCount[b] - a[b]);
 }
 
 /**
@@ -657,5 +665,3 @@ export function hideImportModal() {
         dom.importModal.classList.add('hidden');
     }
 }
-
-
