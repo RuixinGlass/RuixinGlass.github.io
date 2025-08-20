@@ -1009,15 +1009,28 @@ pre, code {
     z-index: 12000;
     box-shadow: 4px 0 24px rgba(124,58,237,0.10);
     border-right: 1.5px solid var(--border-color);
-    transform: translateX(0);
-    transition: transform 0.28s cubic-bezier(.4,1.4,.6,1);
+    /* 默认是收起状态 */
+    transform: translateX(-100%);
+    /* 默认情况下，动画是启用的 */
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     display: block;
     overflow-y: auto;
     overflow-x: hidden;
   }
+
+  /* 拖拽时，通过这个类禁用动画 */
+  .notes-list-panel.is-dragging {
+    transition: none;
+  }
+
+  /* 展开状态 */
+  .notes-list-panel.drawer-open {
+    transform: translateX(0);
+  }
+
+  /* 收起状态 */
   .notes-list-panel.drawer-collapsed {
-    transform: translateX(-100%) !important;
-    visibility: hidden !important;
+    transform: translateX(-100%);
   }
 
   /* 遮罩层样式 */
@@ -1028,9 +1041,9 @@ pre, code {
     z-index: 11999;
     opacity: 0;
     pointer-events: none;
-    transition: opacity 0.25s;
+    transition: opacity 0.3s ease;
   }
-  .notes-list-panel:not(.drawer-collapsed) ~ .drawer-mask {
+  .notes-list-panel.drawer-open ~ .drawer-mask {
     opacity: 1;
     pointer-events: auto;
   }

@@ -519,7 +519,7 @@ function setupHeaderScrollListener() {
 
 /**
  * @function setupMobileDrawerGestures
- * @description 为移动端设置完整的侧边栏触摸滑动（抽屉）功能，恢复旧版高级逻辑。
+ * @description 为移动端设置完整的侧边栏触摸滑动（抽屉）功能，遵循CSS驱动动画的原则。
  */
 function setupMobileDrawerGestures() {
     const sidebar = dom.notesListPanel;
@@ -527,121 +527,46 @@ function setupMobileDrawerGestures() {
     if (!sidebar || !mask) return;
 
     // 拖拽状态变量
-    let dragging = false;
-    let startX = 0;
-    let startY = 0;
-    let startTime = 0;
-    let lastTranslate = 0;
-    let wasCollapsed = false;
-    let moved = false;
-    let directionLocked = false;
-    let isDrawerDrag = false;
-    let lastMoveTime = 0;
-    let lastMoveX = 0;
-    
-    // 配置常量
-    const DRAG_THRESHOLD = 20;           // 开始拖拽的阈值
-    const DIRECTION_THRESHOLD = 15;      // 方向判定阈值 (px)
-    
-    // 分开设置的速度和距离阈值
+    let dragging = false, startX = 0, startY = 0, startTime = 0, lastTranslate = 0, wasCollapsed = false, moved = false, directionLocked = false, isDrawerDrag = false;
+    const DRAG_THRESHOLD = 20, DIRECTION_THRESHOLD = 15;
     const SWIPE_CONFIG = {
-        // 抽出侧栏（向右滑动）- 更容易触发
-        SHOW: {
-            VELOCITY_THRESHOLD: 0.2,    // 抽出速度阈值 (px/ms) - 较低，更容易抽出
-            DISTANCE_THRESHOLD: 30,     // 抽出距离阈值 (px) - 较低
-            POSITION_THRESHOLD: 0.3     // 位置阈值 (30%) - 较低，更容易保持打开
-        },
-        // 推回侧栏（向左滑动）- 避免误关闭
-        HIDE: {
-            VELOCITY_THRESHOLD: 0.2,   // 推回速度阈值 (px/ms) - 较高，避免误关闭
-            DISTANCE_THRESHOLD: 10,     // 推回距离阈值 (px) - 较高
-            POSITION_THRESHOLD: 0.4     // 位置阈值 (70%) - 较高，不容易意外关闭
-        }
+        SHOW: { VELOCITY_THRESHOLD: 0.2, DISTANCE_THRESHOLD: 30, POSITION_THRESHOLD: 0.3 },
+        HIDE: { VELOCITY_THRESHOLD: 0.2, DISTANCE_THRESHOLD: 10, POSITION_THRESHOLD: 0.4 }
     };
 
-    // 获取侧栏宽度
-    function getSidebarWidth() {
-        return sidebar.offsetWidth || 320;
-    }
+    function getSidebarWidth() { return sidebar.offsetWidth || 320; }
 
-    // 设置侧栏位移
     function setSidebarTranslate(x) {
-        sidebar.style.transition = 'none';
         sidebar.style.transform = `translateX(${x}px)`;
     }
 
-    // 重置侧栏过渡效果
-    function resetSidebarTransition() {
-        sidebar.style.transition = '';
-        sidebar.style.transform = '';
-    }
-
-    // 计算滑动速度
-    function calculateVelocity(currentTime, currentX, lastTime, lastX) {
-        const timeDelta = currentTime - lastTime;
-        const distanceDelta = currentX - lastX;
-        return timeDelta > 0 ? Math.abs(distanceDelta) / timeDelta : 0;
-    }
-
-    // 根据最终位置和速度决定抽屉状态
     function finalizeDrawerState(currentTranslate, deltaX, deltaTime) {
         const sidebarWidth = getSidebarWidth();
         const currentPercent = Math.abs(currentTranslate) / sidebarWidth;
-        
-        // 计算速度
         const velocity = deltaTime > 0 ? Math.abs(deltaX) / deltaTime : 0;
         
-        // 判断滑动方向并使用对应的阈值
-        if (deltaX > 0) {
-            // 向右滑动 - 抽出侧栏
+        let shouldOpen = false;
+        if (deltaX > 0) { // 向右滑
             const config = SWIPE_CONFIG.SHOW;
             const isSwipeRight = deltaX > config.DISTANCE_THRESHOLD && velocity > config.VELOCITY_THRESHOLD;
-            
-            if (isSwipeRight) {
-                expandSidebar();
-                return;
-            }
-            
-            // 根据位置判断，使用抽出的位置阈值
-            if (currentPercent < config.POSITION_THRESHOLD) {
-                expandSidebar();
-            } else {
-                collapseSidebar();
-            }
-        } else {
-            // 向左滑动 - 推回侧栏
+            shouldOpen = isSwipeRight || currentPercent < config.POSITION_THRESHOLD;
+        } else { // 向左滑
             const config = SWIPE_CONFIG.HIDE;
             const isSwipeLeft = deltaX < -config.DISTANCE_THRESHOLD && velocity > config.VELOCITY_THRESHOLD;
-            
-            if (isSwipeLeft) {
-                collapseSidebar();
-                return;
-            }
-            
-            // 根据位置判断，使用推回的位置阈值
-            if (currentPercent > config.POSITION_THRESHOLD) {
-                collapseSidebar();
-            } else {
-                expandSidebar();
-            }
+            shouldOpen = !isSwipeLeft && currentPercent < config.POSITION_THRESHOLD;
+        }
+
+        // 调用 ui.js 中的函数来触发最终状态和动画
+        if (shouldOpen) {
+            expandSidebar();
+        } else {
+            collapseSidebar();
         }
     }
 
     // 触摸开始事件
     document.addEventListener('touchstart', (e) => {
-        if (!isMobile()) return;
-        if (e.touches.length !== 1) return;
-        
-        const target = e.target;
-        if (
-            target.closest('pre') ||
-            target.closest('code') ||
-            target.closest('.tags-list') ||
-            target.closest('.MathJax_Display')
-        ) {
-            e._isContentScroll = true;
-            return;
-        }
+        if (!isMobile() || e.touches.length !== 1 || e.target.closest('pre, code, .tags-list, .MathJax_Display')) return;
         
         dragging = true;
         startTime = Date.now();
@@ -652,88 +577,68 @@ function setupMobileDrawerGestures() {
         isDrawerDrag = false;
         wasCollapsed = sidebar.classList.contains('drawer-collapsed');
         lastTranslate = wasCollapsed ? -getSidebarWidth() : 0;
-        sidebar.style.willChange = 'transform';
-        lastMoveTime = startTime;
-        lastMoveX = startX;
+
+        // 关键：添加 is-dragging 类来禁用 CSS transition
+        sidebar.classList.add('is-dragging');
+
     }, { passive: true });
 
     // 触摸移动事件
     document.addEventListener('touchmove', (e) => {
-        if (e._isContentScroll) return;
-        if (!dragging || !isMobile()) return;
+        if (!dragging) return;
         
         const moveX = e.touches[0].clientX;
-        const moveY = e.touches[0].clientY;
         const deltaX = moveX - startX;
-        const deltaY = moveY - startY;
-
-        // 方向锁定判断 - 只有水平滑动距离大于垂直滑动距离时才认为是抽屉拖拽
+        
         if (!directionLocked) {
+            const deltaY = e.touches[0].clientY - startY;
             if (Math.abs(deltaX) > DIRECTION_THRESHOLD || Math.abs(deltaY) > DIRECTION_THRESHOLD) {
                 directionLocked = true;
-                // 关键逻辑：只有当水平距离明显大于垂直距离时才判定为抽屉拖拽
-                isDrawerDrag = Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > DIRECTION_THRESHOLD;
+                isDrawerDrag = Math.abs(deltaX) > Math.abs(deltaY);
             }
         }
-        
-        // 如果不是水平滑动，让页面正常滚动
-        if (!isDrawerDrag) return;
 
-        // 达到拖拽阈值后开始移动
-        if (!moved && Math.abs(deltaX) > DRAG_THRESHOLD) {
-            moved = true;
-        }
+        if (!isDrawerDrag) return;
+        e.preventDefault(); // 阻止页面滚动
+
+        moved = true;
+        let targetTranslate = lastTranslate + deltaX;
+        const sidebarWidth = getSidebarWidth();
+        targetTranslate = Math.min(0, Math.max(-sidebarWidth, targetTranslate));
+        setSidebarTranslate(targetTranslate);
         
-        if (moved) {
-            let targetTranslate = lastTranslate + deltaX;
-            const sidebarWidth = getSidebarWidth();
-            // 限制移动范围
-            targetTranslate = Math.min(0, Math.max(-sidebarWidth, targetTranslate));
-            setSidebarTranslate(targetTranslate);
-            
-            // 更新遮罩层透明度
-            const percent = 1 + (targetTranslate / sidebarWidth); // 0~1
-            mask.style.opacity = Math.max(0, Math.min(1, percent)).toFixed(3);
-            
-            // 阻止默认行为
-            e.preventDefault();
-        }
+        const percent = 1 + (targetTranslate / sidebarWidth);
+        mask.style.opacity = Math.max(0, Math.min(1, percent)).toFixed(3);
+
     }, { passive: false });
 
     // 触摸结束事件
     document.addEventListener('touchend', (e) => {
-        if (!dragging || !isMobile()) return;
+        if (!dragging || !isDrawerDrag) return;
         
         dragging = false;
-        sidebar.style.willChange = '';
-        
-        if (moved && isDrawerDrag) {
-            const endX = e.changedTouches[0].clientX;
-            const endTime = Date.now();
-            const deltaX = endX - startX;
-            const deltaTime = endTime - startTime;
-            
-            // 获取当前位置
-            const currentTransform = sidebar.style.transform;
-            const currentTranslate = currentTransform 
-                ? parseFloat((currentTransform.match(/translateX\(([^)]+)px\)/) || [])[1] || 0)
-                : (wasCollapsed ? -getSidebarWidth() : 0);
-            
-            // 使用改进的判断逻辑
-            finalizeDrawerState(currentTranslate, deltaX, deltaTime);
-        } else {
-            // 没有移动，恢复原状态
-            resetSidebarTransition();
-        }
-    }, { passive: true });
 
-    // 处理触摸取消事件
-    document.addEventListener('touchcancel', (e) => {
-        if (!dragging || !isMobile()) return;
-        
-        dragging = false;
-        sidebar.style.willChange = '';
-        resetSidebarTransition();
+        // 关键：移除 is-dragging 类，让 CSS transition 生效
+        sidebar.classList.remove('is-dragging');
+
+        if (moved) {
+            const endX = e.changedTouches[0].clientX;
+            const deltaX = endX - startX;
+            const deltaTime = Date.now() - startTime;
+            
+            const currentTransform = new DOMMatrix(getComputedStyle(sidebar).transform);
+            const currentTranslate = currentTransform.m41;
+
+            finalizeDrawerState(currentTranslate, deltaX, deltaTime);
+
+            // 监听动画结束事件，清理内联 transform 样式
+            sidebar.addEventListener('transitionend', () => {
+                sidebar.style.transform = '';
+            }, { once: true }); // once: true 确保监听器只执行一次
+
+        } else {
+             sidebar.style.transform = ''; // 如果没有移动，清理样式
+        }
     }, { passive: true });
 
     // 点击遮罩层收回侧栏
@@ -741,15 +646,6 @@ function setupMobileDrawerGestures() {
         if (!isMobile()) return;
         collapseSidebar();
     });
-    
-    // 防止遮罩层的触摸事件与拖拽冲突
-    mask.addEventListener('touchstart', (e) => {
-        if (!isMobile()) return;
-        // 如果正在拖拽，不处理点击
-        if (dragging) {
-            e.preventDefault();
-        }
-    }, { passive: false });
 }
 
 /**

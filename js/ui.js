@@ -530,27 +530,43 @@ export function toggleSidebar() {
 
 /**
  * @function collapseSidebar
- * @description 收起侧边栏
+ * @description 收起侧栏 - 通过切换CSS类触发动画
  */
 export function collapseSidebar() {
-    const notesListPanel = dom.notesListPanel;
-    if (!notesListPanel) return;
-
-    notesListPanel.classList.add('drawer-collapsed');
+    const sidebar = dom.notesListPanel;
+    const mask = dom.drawerMask;
+    
+    if (!sidebar || !mask) return;
+    
+    sidebar.classList.remove('drawer-open');
+    sidebar.classList.add('drawer-collapsed');
+    
+    mask.style.opacity = '0';
+    mask.style.pointerEvents = 'none';
+    
     updateSidebarToggleIcon();
+    
     console.log('侧边栏已收起');
 }
 
 /**
  * @function expandSidebar
- * @description 展开侧边栏
+ * @description 展开侧边栏 - 通过切换CSS类触发动画
  */
 export function expandSidebar() {
-    const notesListPanel = dom.notesListPanel;
-    if (!notesListPanel) return;
-
-    notesListPanel.classList.remove('drawer-collapsed');
+    const sidebar = dom.notesListPanel;
+    const mask = dom.drawerMask;
+    
+    if (!sidebar || !mask) return;
+    
+    sidebar.classList.remove('drawer-collapsed');
+    sidebar.classList.add('drawer-open');
+    
+    mask.style.opacity = '1';
+    mask.style.pointerEvents = 'auto';
+    
     updateSidebarToggleIcon();
+    
     console.log('侧边栏已展开');
 }
 
